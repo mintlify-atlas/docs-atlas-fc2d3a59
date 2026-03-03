@@ -1,0 +1,145 @@
+{
+  "projectType": "saas",
+  "projectName": "Nimaz",
+  "projectDescription": "A beautiful Islamic companion app with prayer times, Quran reader, Hadith collections, and spiritual tools.",
+  "theme": "almond",
+  "primaryColor": "#006B54",
+  "lightColor": "#4CAF50",
+  "darkColor": "#1B5E20",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/prayer-times",
+              "features/quran-reader",
+              "features/hadith-collections",
+              "features/dua-library",
+              "features/prayer-tracker"
+            ]
+          },
+          {
+            "group": "Tools",
+            "pages": [
+              "tools/qibla-finder",
+              "tools/tasbih-counter",
+              "tools/zakat-calculator",
+              "tools/hijri-calendar"
+            ]
+          },
+          {
+            "group": "Widgets",
+            "pages": [
+              "widgets/overview",
+              "widgets/prayer-times-widget",
+              "widgets/next-prayer-widget",
+              "widgets/hijri-date-widget",
+              "widgets/prayer-tracker-widget"
+            ]
+          },
+          {
+            "group": "Settings & Customization",
+            "pages": [
+              "customization/themes",
+              "customization/notifications",
+              "customization/languages",
+              "customization/preferences"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/overview",
+              "development/architecture",
+              "development/project-structure",
+              "development/dependencies"
+            ]
+          },
+          {
+            "group": "Domain Layer",
+            "pages": [
+              "development/domain/models",
+              "development/domain/repositories",
+              "development/domain/use-cases"
+            ]
+          },
+          {
+            "group": "Data Layer",
+            "pages": [
+              "development/data/database",
+              "development/data/preferences",
+              "development/data/audio-manager"
+            ]
+          },
+          {
+            "group": "UI Layer",
+            "pages": [
+              "development/ui/compose-screens",
+              "development/ui/components",
+              "development/ui/theming",
+              "development/ui/navigation"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/building",
+              "development/testing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Accurate prayer times with multiple calculation methods",
+    "Beautiful Quran reader with Mushaf page view and translations",
+    "Comprehensive Hadith collections with bookmarks",
+    "Organized Dua library with categories",
+    "Prayer and fasting tracker with statistics",
+    "AR-enabled Qibla finder",
+    "Tasbih counter with presets",
+    "Zakat calculator",
+    "Khatam (Quran completion) tracking",
+    "Multiple home screen widgets",
+    "Multi-language support (7 languages)",
+    "Offline functionality with no ads",
+    "Material 3 design with dynamic theming"
+  ],
+  "publicApiSurface": [
+    "Prayer Times Calculation (using Adhan library)",
+    "Quran Data Models (Surah, Ayah, Bookmark)",
+    "Hadith Repository",
+    "Dua Repository",
+    "Prayer Tracker",
+    "Fasting Tracker",
+    "Tasbih Counter",
+    "Zakat Calculator",
+    "Qibla Direction Finder",
+    "Hijri Calendar Converter",
+    "Asma ul Husna (99 Names of Allah)",
+    "Asma un Nabi (Names of Prophet)",
+    "Prophet Stories",
+    "Tafseer Reader",
+    "Audio Player (Adhan & Quran)",
+    "Notification Scheduler",
+    "Widget System (5 widgets)"
+  ]
+}
