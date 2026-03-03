@@ -1,0 +1,287 @@
+---
+title: Compose screens
+description: Jetpack Compose screen organization and architecture in Nimaz
+---
+
+Nimaz uses Jetpack Compose for building declarative UI screens. Each screen follows a consistent pattern with ViewModels, state management, and composable functions.
+
+## Screen structure
+
+Screens in Nimaz are organized under `presentation/screens/` with feature-based grouping:
+
+```
+presentation/screens/
+├── home/
+│   └── HomeScreen.kt
+├── quran/
+│   ├── QuranHomeScreen.kt
+│   ├── QuranReaderScreen.kt
+│   └── TafseerScreen.kt
+├── prayer/
+│   ├── PrayerTrackerScreen.kt
+│   └── MonthlyPrayerTimesScreen.kt
+└── settings/
+    ├── SettingsScreen.kt
+    └── AppearanceSettingsScreen.kt
+```
+
+## Screen anatomy
+
+A typical Nimaz screen follows this pattern:
+
+```kotlin presentation/screens/home/HomeScreen.kt
+@Composable
+fun HomeScreen(
+    onNavigateToQuran: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    
+    Scaffold { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            if (state.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn {
+                    // Screen content
+                }
+            }
+        }
+    }
+}
+```
+
+### Key patterns
+
+1. **Navigation callbacks**: Screens receive navigation actions as lambda parameters
+2. **ViewModel integration**: ViewModels are injected using `hiltViewModel()`
+3. **State collection**: UI state is collected using `collectAsState()`
+4. **Scaffold usage**: Most screens use `Scaffold` for consistent layout
+
+## Home screen example
+
+The home screen demonstrates complex UI composition:
+
+```kotlin presentation/screens/home/HomeScreen.kt
+LazyColumn(
+    modifier = Modifier.fillMaxSize(),
+    contentPadding = PaddingValues(bottom = 16.dp)
+) {
+    // Header with prayer info
+    item {
+        HomeHeader(
+            locationName = state.locationName,
+            hijriDate = state.hijriDate,
+            gregorianDate = gregorianDate,
+            nextPrayer = state.nextPrayer,
+            nextPrayerTime = state.prayerTimes.find { 
+                it.type == state.nextPrayer 
+            }?.time ?: "",
+            timeUntilNextPrayer = state.timeUntilNextPrayer,
+            onSettingsClick = onNavigateToSettings
+        )
+    }
+    
+    // Today's progress card
+    item {
+        TodaysProgressCard(
+            prayerTimes = state.prayerTimes,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+    }
+    
+    // Prayer list
+    items(state.prayerTimes) { prayer ->
+        PrayerTimeCard(
+            prayer = prayer,
+            isActive = prayer.type == state.nextPrayer,
+            onClick = { onNavigateToPrayerTracker() },
+            onToggle = {
+                viewModel.onEvent(HomeEvent.TogglePrayerStatus(prayer.type))
+            },
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+        )
+    }
+}
+```
+
+## Screen composition patterns
+
+### Extracting composables
+
+Break down complex screens into smaller composable functions:
+
+```kotlin
+@Composable
+private fun HomeHeader(
+    locationName: String,
+    hijriDate: String,
+    nextPrayer: PrayerType?,
+    timeUntilNextPrayer: String,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.surface
+                    )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp, horizontal = 8.dp)
+        ) {
+            // Header content
+        }
+    }
+}
+```
+
+### Countdown timer
+
+The home screen features an animated countdown timer:
+
+```kotlin presentation/screens/home/HomeScreen.kt
+@Composable
+private fun CountdownTimer(
+    timeUntilNextPrayer: String,
+    modifier: Modifier = Modifier
+) {
+    // Parse time string (e.g., "2h 34m" or "34m 12s")
+    val parts = timeUntilNextPrayer.split(" ")
+    var hours = "00"
+    var minutes = "00"
+    var seconds = "00"
+    
+    parts.forEach { part ->
+        when {
+            part.endsWith("h") -> hours = part.dropLast(1).padStart(2, '0')
+            part.endsWith("m") -> minutes = part.dropLast(1).padStart(2, '0')
+            part.endsWith("s") -> seconds = part.dropLast(1).padStart(2, '0')
+        }
+    }
+    
+    // Animation for pulsing effect
+    val animationsEnabled = LocalAnimationsEnabled.current
+    val infiniteTransition = rememberInfiniteTransition(label = "countdown_pulse")
+    val alpha by if (animationsEnabled) {
+        infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.7f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "alpha"
+        )
+    } else {
+        infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "alpha_static"
+        )
+    }
+    
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        CountdownUnit(value = hours, label = "HOURS", alpha = alpha)
+        CountdownSeparator()
+        CountdownUnit(value = minutes, label = "MINUTES", alpha = alpha)
+        CountdownSeparator()
+        CountdownUnit(value = seconds, label = "SECONDS", alpha = alpha)
+    }
+}
+```
+
+## State management
+
+Screens observe state from ViewModels:
+
+```kotlin
+@Composable
+fun PrayerTrackerScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: PrayerTrackerViewModel = hiltViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    
+    // React to state changes
+    LaunchedEffect(state.selectedDate) {
+        viewModel.onEvent(PrayerTrackerEvent.LoadPrayers)
+    }
+    
+    // Render UI based on state
+    when {
+        state.isLoading -> LoadingIndicator()
+        state.error != null -> ErrorMessage(state.error)
+        else -> PrayerList(state.prayers)
+    }
+}
+```
+
+## Preview support
+
+All screens and components include preview functions:
+
+```kotlin
+@Preview(showBackground = true, widthDp = 400)
+@Composable
+private fun HomeHeaderPreview() {
+    NimazTheme {
+        HomeHeader(
+            locationName = "Dublin, Ireland",
+            hijriDate = "7 Rajab 1446",
+            gregorianDate = "Friday, January 31, 2026",
+            nextPrayer = PrayerType.ASR,
+            nextPrayerTime = "4:30 PM",
+            timeUntilNextPrayer = "2h 15m 30s",
+            onSettingsClick = {}
+        )
+    }
+}
+```
+
+## Responsive layouts
+
+Screens adapt to different content sizes:
+
+```kotlin
+LazyColumn(
+    modifier = Modifier.fillMaxSize(),
+    contentPadding = PaddingValues(
+        horizontal = 20.dp,
+        vertical = 16.dp,
+        bottom = 80.dp // Account for bottom nav
+    ),
+    verticalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    // Content
+}
+```
+
+## Related
+
+- [Components](/development/ui/components) - Reusable UI components
+- [Theming](/development/ui/theming) - Theme and styling system
+- [Navigation](/development/ui/navigation) - Navigation architecture

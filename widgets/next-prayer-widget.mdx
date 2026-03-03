@@ -1,0 +1,369 @@
+---
+title: Next prayer widget
+description: A focused widget showing the upcoming prayer time with live countdown on your Android home screen
+---
+
+The Next Prayer widget provides a clean, focused view of your upcoming prayer with a live countdown timer. Perfect for users who want a simple, glanceable widget without the full prayer schedule.
+
+## Features
+
+- **Single prayer focus** showing only the next upcoming prayer
+- **Large, readable time** display
+- **Live countdown** updated every minute
+- **Minimal design** for quick glances
+- **Tap to open** the main app
+
+## Widget appearance
+
+The widget displays a centered card with:
+
+1. **Label**: "Next Prayer" in small text
+2. **Prayer name**: Large, bold text (e.g., "Dhuhr")
+3. **Prayer time**: Extra large time display (e.g., "1:30 PM")
+4. **Countdown badge**: Colored badge showing time remaining (e.g., "in 2h 30m")
+
+<Note>
+The Next Prayer widget is designed to be smaller than the Prayer Times widget, making it ideal for users with limited home screen space.
+</Note>
+
+## Adding the widget
+
+<Steps>
+  <Step title="Open widget picker">
+    Long-press on your home screen and tap "Widgets".
+  </Step>
+  
+  <Step title="Select Next Prayer">
+    Find the Nimaz section and locate the "Next Prayer" widget.
+  </Step>
+  
+  <Step title="Place on home screen">
+    Drag the widget to your preferred location. It works well in smaller spaces.
+  </Step>
+  
+  <Step title="Wait for initial load">
+    The widget will show "Loading..." briefly before displaying your next prayer time.
+  </Step>
+</Steps>
+
+## Live countdown
+
+The countdown timer shows time remaining until the next prayer and updates approximately every minute.
+
+### Countdown format
+
+The display format changes based on time remaining:
+
+- **More than 1 hour**: "in 3h 15m"
+- **30-60 minutes**: "in 45m 30s"
+- **Less than 30 minutes**: "in 12m 42s"
+- **Less than 1 minute**: "in 30s"
+
+### Implementation
+
+The countdown uses the shared `WidgetUpdateScheduler`:
+
+```kotlin
+// Compute countdown live from stored epoch
+val liveCountdown = if (data.nextPrayerEpochMillis > 0L) {
+    WidgetUpdateScheduler.computeCountdown(data.nextPrayerEpochMillis)
+} else {
+    data.countdown.ifEmpty { "—" }
+}
+```
+
+See widget/nextprayer/NextPrayerWidget.kt:163 for the countdown implementation.
+
+### Countdown badge
+
+The countdown is displayed in a rounded badge with:
+
+- **Background**: Dimmed primary color (`R.color.widget_primary_dim`)
+- **Text**: Primary accent color
+- **Border radius**: 8dp for rounded appearance
+- **Padding**: Comfortable spacing for readability
+
+## Implementation details
+
+### Widget class
+
+The Next Prayer widget extends `GlanceAppWidget`:
+
+```kotlin
+class NextPrayerWidget : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<NextPrayerWidgetState> =
+        NextPrayerStateDefinition
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            GlanceTheme {
+                val state = currentState<NextPrayerWidgetState>()
+                NextPrayerContent(state)
+            }
+        }
+    }
+}
+```
+
+See widget/nextprayer/NextPrayerWidget.kt:37 for the full widget implementation.
+
+### Widget state
+
+The widget manages three states:
+
+<CodeGroup>
+```kotlin Loading
+data object Loading : NextPrayerWidgetState
+// Shows a circular progress indicator
+```
+
+```kotlin Success
+data class Success(val data: NextPrayerData) : NextPrayerWidgetState
+
+data class NextPrayerData(
+    val prayerName: String = "",
+    val prayerTime: String = "",
+    val countdown: String = "",
+    val isValid: Boolean = true,
+    val nextPrayerEpochMillis: Long = 0L
+)
+```
+
+```kotlin Error
+data class Error(val message: String?) : NextPrayerWidgetState
+// Shows "Tap to setup" message
+```
+</CodeGroup>
+
+See widget/nextprayer/NextPrayerWidgetState.kt:6 for state definitions.
+
+### Update mechanism
+
+The widget uses two update mechanisms:
+
+#### Periodic data refresh
+
+`NextPrayerWorker` fetches updated prayer data:
+
+```kotlin
+class NextPrayerWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = NextPrayerWidget()
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        NextPrayerWorker.enqueuePeriodicWork(context, force = true)
+        WidgetUpdateScheduler.schedule(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        NextPrayerWorker.cancel(context)
+        WidgetUpdateScheduler.cancel(context)
+    }
+}
+```
+
+See widget/nextprayer/NextPrayerWidget.kt:194 for the receiver.
+
+#### Minute-by-minute countdown
+
+The `WidgetTickReceiver` updates both Next Prayer and Prayer Times widgets:
+
+```kotlin
+override fun onReceive(context: Context, intent: Intent?) {
+    scope.launch {
+        try {
+            NextPrayerWidget().updateAll(context)
+        } catch (_: Exception) {}
+        try {
+            PrayerTimesWidget().updateAll(context)
+        } catch (_: Exception) {}
+    }
+}
+```
+
+See widget/WidgetUpdateScheduler.kt:87 for tick updates.
+
+## Widget UI composition
+
+The success state composable creates a centered layout:
+
+```kotlin
+Box(
+    modifier = GlanceModifier
+        .fillMaxSize()
+        .background(backgroundColor)
+        .cornerRadius(16.dp)
+        .clickable(actionStartActivity<MainActivity>())
+        .padding(16.dp),
+    contentAlignment = Alignment.Center
+) {
+    Column(
+        modifier = GlanceModifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Next Prayer", style = TextStyle(...))
+        Text(data.prayerName, style = TextStyle(...)) // Large prayer name
+        Text(data.prayerTime, style = TextStyle(...)) // Extra large time
+        CountdownBadge(liveCountdown) // Countdown in badge
+    }
+}
+```
+
+See widget/nextprayer/NextPrayerWidget.kt:111 for the UI composition.
+
+## Styling
+
+The widget uses a hierarchy of font sizes:
+
+- **"Next Prayer" label**: 11sp, medium weight, secondary color
+- **Prayer name**: 20sp, bold, primary accent color
+- **Prayer time**: 28sp, bold, primary text color
+- **Countdown**: 12sp, bold, in colored badge
+
+This creates clear visual hierarchy for quick scanning.
+
+### Theme colors
+
+```kotlin
+val backgroundColor = ColorProvider(R.color.widget_background)
+val textColor = ColorProvider(R.color.widget_text)
+val textSecondary = ColorProvider(R.color.widget_text_secondary)
+val primaryColor = ColorProvider(R.color.widget_primary)
+```
+
+These adapt to Material You dynamic theming on Android 12+.
+
+## Android manifest registration
+
+The widget is declared in `AndroidManifest.xml`:
+
+```xml
+<receiver
+    android:name=".widget.nextprayer.NextPrayerWidgetReceiver"
+    android:exported="true"
+    android:label="@string/widget_next_prayer_name">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/next_prayer_widget_info" />
+</receiver>
+```
+
+## Interaction
+
+The entire widget is clickable and opens `MainActivity`:
+
+```kotlin
+.clickable(actionStartActivity<MainActivity>())
+```
+
+This provides quick access to:
+- Full prayer schedule
+- Prayer tracking
+- Qibla direction
+- Other app features
+
+## Edge cases handled
+
+### After Isha prayer
+
+When Isha (the last prayer) has passed, the widget displays tomorrow's Fajr prayer as the "next" prayer.
+
+### Invalid data
+
+If prayer times haven't been calculated:
+- Widget shows "Tap to setup" message
+- Clicking opens the app for initial configuration
+- After setup, widget updates automatically
+
+### Midnight transition
+
+The widget automatically updates when the day changes:
+- Worker recalculates prayer times
+- Next prayer switches from last Isha to next Fajr
+- Countdown resets for the new day
+
+## Battery efficiency
+
+The widget is optimized for battery life:
+
+- **Inexact repeating alarms**: Uses `setInexactRepeating()` which allows the system to batch updates
+- **Efficient workers**: Periodic updates only when widget is active
+- **No continuous processes**: Only scheduled updates, no always-running services
+- **Shared scheduler**: Both countdown widgets share the same `WidgetUpdateScheduler`
+
+<Note>
+Countdown updates may be slightly delayed by the system to save battery. This is normal Android behavior and typically results in updates within a few seconds of each minute.
+</Note>
+
+## Troubleshooting
+
+### Widget shows "Tap to setup"
+
+This appears when prayer times aren't available.
+
+**Solution**:
+1. Open the Nimaz app
+2. Grant location permission
+3. Wait for prayer times to calculate
+4. Widget will update automatically
+
+### Countdown not updating
+
+The countdown may stop updating if the scheduler is killed.
+
+**Solution**:
+1. Check battery optimization settings
+2. Ensure Nimaz is not restricted
+3. Remove and re-add the widget
+4. Restart your device if needed
+
+### Shows wrong prayer
+
+This can happen if prayer times are outdated.
+
+**Solution**:
+1. Open the app to trigger recalculation
+2. Check your location is correct
+3. Verify time zone settings
+4. Wait for the next periodic update
+
+### Time format issues
+
+The widget respects your app's time format setting.
+
+**Solution**:
+1. Open Nimaz app
+2. Go to Settings
+3. Change time format (12-hour/24-hour)
+4. Widget will update on next refresh
+
+## Comparison with Prayer Times widget
+
+| Feature | Next Prayer | Prayer Times |
+|---------|-------------|-------------|
+| Size | Small | Medium-Large |
+| Prayers shown | 1 (next) | 5 (all) |
+| Countdown | Yes | Yes |
+| Location | No | Yes |
+| Hijri date | No | Yes |
+| Best for | Quick glance | Full schedule |
+
+Choose the Next Prayer widget if you:
+- Have limited home screen space
+- Only need to know the upcoming prayer
+- Prefer a minimal, focused design
+
+Choose the Prayer Times widget if you:
+- Want to see the full daily schedule
+- Need location and Hijri date information
+- Have more home screen space available
+
+## Related widgets
+
+- [Prayer times widget](/widgets/prayer-times-widget) - Complete daily prayer schedule
+- [Prayer tracker widget](/widgets/prayer-tracker-widget) - Track completed prayers
+- [Hijri date widget](/widgets/hijri-date-widget) - Islamic calendar display

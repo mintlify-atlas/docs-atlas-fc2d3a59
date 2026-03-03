@@ -1,0 +1,210 @@
+---
+title: Tasbih counter
+description: Digital tasbih with presets, progress tracking, and haptic feedback
+---
+
+The Tasbih counter is a digital tool for tracking dhikr (remembrance of Allah). It provides preset phrases, progress visualization, and customizable feedback options.
+
+## Features
+
+### Counter interface
+
+The main counting interface displays:
+
+**Central counter circle**
+- Large, tappable circular button (220dp diameter)
+- Current count displayed in bold, large font
+- "Tap to count" instruction text
+- Circular progress ring showing completion percentage
+- Gradient border effect
+
+**Progress ring**
+- Background ring in surface variant color
+- Animated progress arc with sweep gradient effect
+- Colors transition from primary to gold to indicate progress
+- Turns green when target count is reached
+- 8dp stroke width for clear visibility
+
+**Dhikr display**
+- Arabic text in Amiri font (extra large size)
+- Gold color for Arabic text
+- Translation in body medium style
+- Target count indication
+
+### Preset phrases
+
+The app includes five default presets:
+
+1. **SubhanAllah** (سُبْحَانَ اللَّهِ)
+   - Translation: "Glory be to Allah"
+   - Target: 33 times
+   - Category: After Prayer
+   - Reference: Sahih Muslim
+
+2. **Alhamdulillah** (الْحَمْدُ لِلَّهِ)
+   - Translation: "All praise is due to Allah"
+   - Target: 33 times
+   - Category: After Prayer
+   - Reference: Sahih Muslim
+
+3. **Allahu Akbar** (اللَّهُ أَكْبَرُ)
+   - Translation: "Allah is the Greatest"
+   - Target: 34 times
+   - Category: After Prayer
+   - Reference: Sahih Muslim
+
+4. **La ilaha illallah** (لَا إِلَهَ إِلَّا اللَّهُ)
+   - Translation: "There is no god but Allah"
+   - Target: 100 times
+   - Category: Daily
+   - Reference: Sahih Bukhari
+
+5. **Astaghfirullah** (أَسْتَغْفِرُ اللَّهَ)
+   - Translation: "I seek forgiveness from Allah"
+   - Target: 100 times
+   - Category: Daily
+   - Reference: Sahih Muslim
+
+### Statistics tracking
+
+Three live statistics are displayed:
+
+- **Today**: Total count for the current day (updates in real-time)
+- **Rounds**: Number of complete laps (target count reached)
+- **Sessions**: Total completed tasbih sessions
+
+Statistics appear in a grid layout below the counter circle.
+
+### Preset categories
+
+Presets are organized into categories:
+- **Daily**: Regular daily dhikr
+- **After Prayer**: Recited after completing prayers
+- **Morning**: Morning remembrance
+- **Evening**: Evening remembrance
+- **Custom**: User-created presets
+
+## How users interact
+
+### Counting dhikr
+
+1. **Select a preset**: Tap any preset chip from the horizontal scrolling list
+2. **Start counting**: Tap the large circular counter button
+3. **Watch progress**: Observe the progress ring fill up
+4. **Complete rounds**: When target is reached, the counter resets and rounds increase
+5. **Continue**: Keep tapping for multiple rounds
+
+### Managing presets
+
+**Switch between presets:**
+- Scroll through the preset chips horizontally
+- Selected preset has primary container background
+- Selected preset shows primary colored border
+- Chip displays Arabic text and target count (e.g., "33x")
+
+**Add custom preset:**
+1. Tap the add icon (+) in the top app bar
+2. Navigate to the add preset screen
+3. Enter custom dhikr details
+4. Custom presets appear in the same scrollable list
+
+### Control buttons
+
+Three circular control buttons are provided:
+
+**Reset button** (red icon)
+- Clears current count and rounds
+- Starts fresh session
+- Tap to reset to zero
+
+**Sound toggle**
+- Enabled: Volume up icon (full opacity)
+- Disabled: Volume off icon (40% opacity)
+- Plays sound feedback on each count
+
+**Vibration toggle**
+- Enabled: Phone icon (full opacity)
+- Disabled: Phone icon (40% opacity)
+- Provides haptic feedback on each tap
+
+### Session management
+
+**Active session tracking:**
+- App automatically tracks session data
+- Records preset used, count, target, and duration
+- Calculates total laps (rounds completed)
+- Stores timestamp for history
+
+**Completion:**
+- Session marked complete when target reached
+- Completion time recorded
+- Optional notes can be added
+- Saved to session history
+
+### Viewing history
+
+1. Tap the history icon in the top app bar
+2. View past tasbih sessions
+3. See completed counts and dates
+4. Track progress over time
+
+## Progress visualization
+
+### Progress calculation
+
+```
+progress = currentCount / targetCount
+```
+
+- Clamped between 0.0 and 1.0
+- Animated with 300ms tween
+- Updates smoothly as count increases
+
+### Color states
+
+**Progress ring colors:**
+- In progress: Primary color → Gold gradient
+- Complete: Green color throughout
+- Background: Surface variant color
+
+**Counter indicator:**
+- Default: Outline color, 20dp size
+- Facing Qibla: Green color, 28dp size with mosque icon
+
+### Completion animation
+
+When target count is reached:
+- Progress ring turns green
+- Animated color transition
+- Visual feedback confirms milestone
+- Rounds counter increments
+- Count resets to 0 for next round
+
+## Preset data structure
+
+Each preset contains:
+- **ID**: Unique identifier
+- **Name**: Display name
+- **Arabic text**: Original Arabic dhikr
+- **Transliteration**: Romanized pronunciation
+- **Translation**: English meaning
+- **Target count**: Goal number of repetitions
+- **Category**: Grouping category
+- **Reference**: Hadith source
+- **Display order**: Sorting position
+- **Created/Updated timestamps**
+
+## Technical implementation
+
+Relevant source files:
+- `TasbihModels.kt` - Data models and presets
+- `TasbihScreen.kt` - Main counter UI
+- `TasbihHistoryScreen.kt` - Session history
+- `AddPresetScreen.kt` - Custom preset creation
+- `TasbihViewModel.kt` - State management
+
+Key components:
+- `CounterCircle` - Tappable counter with progress ring
+- `DhikrDisplay` - Arabic text and translation display
+- `PresetChip` - Selectable preset cards
+- `ControlButtons` - Reset and feedback toggles

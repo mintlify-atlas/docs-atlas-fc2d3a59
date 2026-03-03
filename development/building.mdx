@@ -1,0 +1,340 @@
+---
+title: Building from source
+description: Complete guide to setting up your development environment and building Nimaz from source
+---
+
+This guide walks you through building Nimaz from source on your local machine.
+
+## Prerequisites
+
+### Required software
+
+<Steps>
+  <Step title="Install JDK 21">
+    Nimaz requires Java Development Kit (JDK) 21.
+    
+    **Download:**
+    - [Eclipse Temurin JDK 21](https://adoptium.net/) (recommended)
+    - [Oracle JDK 21](https://www.oracle.com/java/technologies/downloads/)
+    
+    Verify installation:
+    ```bash
+    java -version
+    # Should show version 21.x.x
+    ```
+  </Step>
+  
+  <Step title="Install Android Studio">
+    Download and install [Android Studio Ladybug or newer](https://developer.android.com/studio).
+    
+    During installation, ensure these components are selected:
+    - Android SDK
+    - Android SDK Platform
+    - Android Virtual Device (for testing)
+  </Step>
+  
+  <Step title="Install Android SDK components">
+    Open Android Studio and navigate to **Settings → Appearance & Behavior → System Settings → Android SDK**.
+    
+    Install:
+    - **SDK Platforms**: Android 15.0 (API 36) - required for compilation
+    - **SDK Tools**: 
+      - Android SDK Build-Tools
+      - Android SDK Command-line Tools
+      - Android Emulator (optional, for testing)
+  </Step>
+</Steps>
+
+<Note>
+The project compiles against API 36 (Android 15) and supports devices running API 29 (Android 10) and above.
+</Note>
+
+### Optional tools
+
+- **Git**: For version control ([download](https://git-scm.com/))
+- **Fastlane**: For automated builds and deployment (requires Ruby)
+
+## Clone the repository
+
+```bash
+git clone https://github.com/arshad-shah/nimaz.git
+cd nimaz
+```
+
+## Project configuration
+
+### Build system overview
+
+Nimaz uses Gradle with Kotlin DSL for build configuration:
+
+- **Root build file**: `build.gradle.kts` - Defines plugins for all modules
+- **App build file**: `app/build.gradle.kts` - Main application configuration
+- **Settings**: `settings.gradle.kts` - Project structure and repositories
+- **Properties**: `gradle.properties` - Build properties and JVM settings
+
+### Key build configuration
+
+```kotlin
+android {
+    namespace = "com.arshadshah.nimaz"
+    compileSdk = 36        // Compile against Android 15
+    
+    defaultConfig {
+        applicationId = "com.arshadshah.nimaz"
+        minSdk = 29        // Support Android 10+
+        targetSdk = 36     // Target Android 15
+        versionCode = 300
+        versionName = "3.0.0"
+    }
+    
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+}
+```
+
+### Major dependencies
+
+- **Jetpack Compose**: Modern UI toolkit
+- **Hilt**: Dependency injection
+- **Room**: Local database
+- **WorkManager**: Background tasks
+- **Adhan**: Prayer time calculations
+- **CameraX**: Qibla compass
+- **Media3 ExoPlayer**: Audio playback
+- **Glance**: App widgets
+
+See `app/build.gradle.kts:63-141` for the complete dependency list.
+
+## Building the app
+
+### Using Android Studio
+
+<Steps>
+  <Step title="Open the project">
+    Launch Android Studio and select **Open** → navigate to the cloned `nimaz` directory
+  </Step>
+  
+  <Step title="Wait for Gradle sync">
+    Android Studio will automatically sync Gradle. This downloads all dependencies and may take several minutes on first run.
+  </Step>
+  
+  <Step title="Select build variant">
+    In the **Build Variants** panel (View → Tool Windows → Build Variants), you can select:
+    - **debug**: Development build with debugging enabled
+    - **release**: Production build with optimizations
+  </Step>
+  
+  <Step title="Build the project">
+    - Click **Build → Make Project** (or press Ctrl+F9 / Cmd+F9)
+    - Or click the **Run** button to build and install on a device/emulator
+  </Step>
+</Steps>
+
+### Using Gradle command line
+
+#### Debug build
+
+```bash
+# Make gradlew executable (Linux/macOS)
+chmod +x gradlew
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Output location:
+# app/build/outputs/apk/debug/app-debug.apk
+```
+
+#### Release build
+
+<Warning>
+Release builds require signing configuration. Without proper keystore setup, use debug builds for development.
+</Warning>
+
+To create a signed release build, you need:
+
+1. A keystore file for signing
+2. Environment variables configured:
+
+```bash
+export KEYSTORE_FILE=/path/to/keystore.jks
+export KEYSTORE_PASSWORD=your_keystore_password
+export KEY_ALIAS=your_key_alias
+export KEY_PASSWORD=your_key_password
+```
+
+Then build:
+
+```bash
+./gradlew assembleRelease
+
+# Output location:
+# app/build/outputs/apk/release/app-release.apk
+```
+
+#### Build bundle (AAB)
+
+For Google Play distribution:
+
+```bash
+./gradlew bundleRelease
+
+# Output location:
+# app/build/outputs/bundle/release/app-release.aab
+```
+
+### Common Gradle tasks
+
+```bash
+# Clean build outputs
+./gradlew clean
+
+# Build and run tests
+./gradlew build
+
+# Run lint checks
+./gradlew lint
+
+# Run unit tests
+./gradlew test
+
+# Run instrumented tests (requires device/emulator)
+./gradlew connectedAndroidTest
+
+# View all available tasks
+./gradlew tasks
+```
+
+## Installing on a device
+
+### Using Android Studio
+
+1. Connect your Android device via USB or start an emulator
+2. Enable USB debugging on your device (Settings → Developer Options)
+3. Click the **Run** button (or press Shift+F10)
+4. Select your device from the deployment target dialog
+
+### Using ADB
+
+```bash
+# Install debug APK
+adb install app/build/outputs/apk/debug/app-debug.apk
+
+# Install and replace existing app
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Uninstall
+adb uninstall com.arshadshah.nimaz
+```
+
+## Troubleshooting
+
+### Gradle sync fails
+
+**Problem**: Dependencies can't be downloaded
+
+**Solutions**:
+```bash
+# Retry with stacktrace for details
+./gradlew build --stacktrace
+
+# Clear Gradle cache
+rm -rf ~/.gradle/caches/
+./gradlew clean build
+
+# Check internet connection and proxy settings
+```
+
+### Out of memory errors
+
+**Problem**: Gradle runs out of memory during build
+
+**Solution**: Increase heap size in `gradle.properties`:
+```properties
+org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+```
+
+### SDK version mismatch
+
+**Problem**: "Failed to find target with hash string 'android-36'"
+
+**Solution**: Install Android SDK Platform 36 via Android Studio SDK Manager.
+
+### Build fails after git pull
+
+**Problem**: Stale build cache after pulling changes
+
+**Solution**:
+```bash
+./gradlew clean
+# In Android Studio: File → Invalidate Caches → Invalidate and Restart
+```
+
+### KSP annotation processing fails
+
+**Problem**: Hilt or Room compilation errors
+
+**Solution**:
+```bash
+# Clean and rebuild
+./gradlew clean
+./gradlew kaptDebugKotlin --rerun-tasks
+```
+
+<Note>
+Nimaz uses KSP (Kotlin Symbol Processing) instead of kapt for faster annotation processing. Hilt and Room are processed with KSP.
+</Note>
+
+## Using Fastlane
+
+Nimaz includes Fastlane configuration for automated builds:
+
+### Setup
+
+```bash
+# Install Ruby (if not already installed)
+# macOS: Ruby comes pre-installed
+# Ubuntu: sudo apt install ruby-full
+
+# Install Bundler and dependencies
+gem install bundler
+bundle install
+```
+
+### Available lanes
+
+```bash
+# Run tests and lint
+bundle exec fastlane android test
+
+# Run only lint
+bundle exec fastlane android lint
+
+# Deploy to Play Store internal track (requires configuration)
+bundle exec fastlane android deploy_internal
+
+# Deploy to Play Store beta track
+bundle exec fastlane android deploy_beta
+```
+
+See `fastlane/Fastfile` for complete lane definitions.
+
+## CI/CD
+
+Nimaz uses GitHub Actions for continuous integration:
+
+- **PR Checks** (`.github/workflows/pr_checks.yml`): Runs tests and lint on pull requests
+- **Build and Release** (`.github/workflows/build_and_release.yml`): Creates release builds
+- **Deploy** (`.github/workflows/deploy.yml`): Deploys to Play Store internal track
+
+You can reference these workflows for local build configurations.
+
+## Next steps
+
+Now that you can build Nimaz:
+
+- Learn about [Testing](/development/testing) to write and run tests
+- Read [Contributing guidelines](/development/contributing) to start contributing
+- Explore the codebase and start making changes!

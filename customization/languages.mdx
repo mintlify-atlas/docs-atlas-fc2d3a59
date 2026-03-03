@@ -1,0 +1,191 @@
+---
+title: Multi-language support
+description: Configure app language from 7 supported languages with automatic RTL layout
+---
+
+Nimaz supports 7 languages with full translations, automatic layout direction, and runtime language switching without requiring app restart.
+
+## Supported languages
+
+The app currently supports the following languages:
+
+```kotlin SettingsViewModel.kt:33-45
+enum class AppLanguage(
+    val code: String,
+    val displayName: String,
+    val nativeName: String,
+    val flag: String
+) {
+    ENGLISH("en", "English", "English", "GB"),
+    TURKISH("tr", "Turkish", "Türkçe", "TR"),
+    INDONESIAN("id", "Indonesian", "Bahasa Indonesia", "ID"),
+    MALAY("ms", "Malay", "Bahasa Melayu", "MY"),
+    FRENCH("fr", "French", "Français", "FR"),
+    GERMAN("de", "German", "Deutsch", "DE")
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="English" icon="flag-usa">
+    Default language - `en`
+  </Card>
+  <Card title="Türkçe" icon="flag">
+    Turkish - `tr`
+  </Card>
+  <Card title="Bahasa Indonesia" icon="flag">
+    Indonesian - `id`
+  </Card>
+  <Card title="Bahasa Melayu" icon="flag">
+    Malay - `ms`
+  </Card>
+  <Card title="Français" icon="flag">
+    French - `fr`
+  </Card>
+  <Card title="Deutsch" icon="flag">
+    German - `de`
+  </Card>
+</CardGroup>
+
+## Language storage
+
+The selected language is persisted in `PreferencesDataStore`:
+
+```kotlin PreferencesDataStore.kt:206-214
+val appLanguage: Flow<String> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.APP_LANGUAGE] ?: "en"
+}
+
+suspend fun setAppLanguage(language: String) {
+    dataStore.edit { preferences ->
+        preferences[PreferencesKeys.APP_LANGUAGE] = language
+    }
+}
+```
+
+The default language is English (`"en"`).
+
+## Runtime language switching
+
+Nimaz uses `LocaleHelper` to switch languages at runtime without requiring app restart:
+
+```kotlin LocaleHelper.kt:25-38
+fun setLocale(context: Context, languageCode: String) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.getSystemService(LocaleManager::class.java)
+            ?.applicationLocales = LocaleList.forLanguageTags(languageCode)
+    } else {
+        val locale = Locale(languageCode)
+        Locale.setDefault(locale)
+        val config = context.resources.configuration
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        @Suppress("DEPRECATION")
+        context.resources.updateConfiguration(config, context.resources.displayMetrics)
+    }
+}
+```
+
+<Info>
+  On Android 13+ (API 33+), language switching uses the system `LocaleManager` for better integration with system settings.
+</Info>
+
+When a user changes language in settings:
+
+```kotlin SettingsViewModel.kt:264-267
+is SettingsEvent.SetLanguage -> {
+    _generalState.update { it.copy(language = event.language) }
+    viewModelScope.launch {
+        preferencesDataStore.setAppLanguage(event.language.code)
+        LocaleHelper.setLocale(context, event.language.code)
+    }
+}
+```
+
+## Typography and font support
+
+The theme system provides locale-specific typography:
+
+```kotlin Theme.kt:132
+MaterialTheme(
+    colorScheme = colorScheme,
+    typography = typographyForLocale(localeCode),
+    shapes = NimazShapes,
+    content = content
+)
+```
+
+This allows for language-specific font adjustments, particularly for:
+
+- Arabic text rendering
+- RTL (Right-to-Left) language support
+- Font size and weight variations per language
+
+### Arabic font sizing
+
+Users can adjust Arabic font size independently for better readability:
+
+```kotlin PreferencesDataStore.kt:216-224
+val arabicFontSize: Flow<String> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.ARABIC_FONT_SIZE] ?: "medium"
+}
+
+suspend fun setArabicFontSize(size: String) {
+    dataStore.edit { preferences ->
+        preferences[PreferencesKeys.ARABIC_FONT_SIZE] = size
+    }
+}
+```
+
+## Language selection UI
+
+The language selection screen (`LanguageScreen.kt`) displays all available languages with:
+
+- Country flag indicator
+- Language name in English
+- Native language name
+- Visual selection indicator
+
+```kotlin LanguageScreen.kt:90-105
+AppLanguage.entries.forEachIndexed { index, language ->
+    LanguageItem(
+        language = language,
+        isSelected = generalState.language == language,
+        onClick = { viewModel.onEvent(SettingsEvent.SetLanguage(language)) }
+    )
+
+    if (index < AppLanguage.entries.size - 1) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant,
+            thickness = 1.dp,
+            modifier = Modifier.padding(start = 67.dp)
+        )
+    }
+}
+```
+
+<Tip>
+  The language immediately updates throughout the app when selected, providing instant visual feedback.
+</Tip>
+
+## Adding new languages
+
+To add a new language to Nimaz:
+
+1. Create `res/values-XX/strings.xml` where `XX` is the language code (e.g., `values-ar` for Arabic)
+2. Copy the default `strings.xml` and translate all string values
+3. Add the language code to the `AppLanguage` enum in `SettingsViewModel.kt`
+4. The language will automatically appear in the language picker
+
+```kotlin LocaleHelper.kt:12-17
+/**
+ * HOW TO ADD A NEW LANGUAGE:
+ * 1. Create res/values-XX/strings.xml (e.g., values-ar for Arabic)
+ * 2. Copy the default strings.xml and translate all string values
+ * 3. Add the language code to AppLanguage enum in SettingsViewModel.kt
+ * 4. The language will automatically appear in the language picker
+ */
+```
+
+<Note>
+  All string resources must be translated for the language to display correctly throughout the app.
+</Note>

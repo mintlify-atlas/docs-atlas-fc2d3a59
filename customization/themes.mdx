@@ -1,0 +1,105 @@
+---
+title: Theme customization
+description: Configure theme modes, dynamic colors, and Islamic visual patterns
+---
+
+Nimaz offers flexible theming options to personalize your prayer experience with support for light, dark, and system-adaptive themes, Material You dynamic colors, and traditional Islamic decorative patterns.
+
+## Theme modes
+
+The app supports three theme modes that control the overall appearance:
+
+- **System** - Automatically matches your device's system theme settings
+- **Light** - Fixed light theme with bright backgrounds
+- **Dark** - Fixed dark theme with deep backgrounds optimized for low-light conditions
+
+Theme preference is stored in `PreferencesDataStore` and defaults to `"system"`:
+
+```kotlin PreferencesDataStore.kt:127-135
+val themeMode: Flow<String> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.THEME_MODE] ?: "system"
+}
+
+suspend fun setThemeMode(mode: String) {
+    dataStore.edit { preferences ->
+        preferences[PreferencesKeys.THEME_MODE] = mode
+    }
+}
+```
+
+The theme mode is applied in `MainActivity` which converts the string value to a `ThemeMode` enum:
+
+```kotlin MainActivity.kt:57-61
+val themeMode = when (themeModeString) {
+    "light" -> ThemeMode.LIGHT
+    "dark" -> ThemeMode.DARK
+    else -> ThemeMode.SYSTEM
+}
+```
+
+## Dynamic colors
+
+<Info>
+  Dynamic color requires Android 12 (API level 31) or higher.
+</Info>
+
+On Android 12+, users can enable Material You dynamic colors that adapt the app's color scheme to their device wallpaper:
+
+```kotlin PreferencesDataStore.kt:137-145
+val dynamicColor: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.DYNAMIC_COLOR] ?: false
+}
+
+suspend fun setDynamicColor(enabled: Boolean) {
+    dataStore.edit { preferences ->
+        preferences[PreferencesKeys.DYNAMIC_COLOR] = enabled
+    }
+}
+```
+
+The `NimazTheme` composable applies dynamic colors when enabled:
+
+```kotlin Theme.kt:103-110
+val colorScheme = when {
+    dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        val context = LocalContext.current
+        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    }
+    darkTheme -> DarkColorScheme
+    else -> LightColorScheme
+}
+```
+
+## Islamic patterns
+
+Users can toggle decorative Islamic geometric patterns throughout the app interface. This setting controls the display of traditional arabesque and geometric designs:
+
+```kotlin PreferencesDataStore.kt:147-154
+val showIslamicPatterns: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.SHOW_ISLAMIC_PATTERNS] ?: true
+}
+
+suspend fun setShowIslamicPatterns(enabled: Boolean) {
+    dataStore.edit { it[PreferencesKeys.SHOW_ISLAMIC_PATTERNS] = enabled }
+}
+```
+
+The pattern display preference is exposed through a `CompositionLocal` that UI components can access:
+
+```kotlin Theme.kt:27
+val LocalShowIslamicPatterns = compositionLocalOf { true }
+```
+
+<Note>
+  Islamic patterns are enabled by default to provide an authentic Islamic app experience.
+</Note>
+
+## User interface
+
+Theme settings are configured in the Appearance Settings screen, which provides:
+
+- Visual theme preview cards showing Dark, Light, and System options
+- Toggle for dynamic colors (Android 12+)
+- Toggle for Islamic pattern display
+
+See `AppearanceSettingsScreen.kt:78-203` for the complete implementation of the theme selection UI.

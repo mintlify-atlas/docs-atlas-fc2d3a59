@@ -1,80 +1,345 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick start guide
+description: Get started with Nimaz in minutes - set up your location, configure prayer times, and explore key features
 ---
 
-## Get started in three steps
+# Quick start guide
 
-Get your documentation site running locally and make your first customization.
+This guide will help you set up Nimaz and start using it within minutes. We'll walk through the initial onboarding, configure your location for accurate prayer times, and explore the main features.
 
-### Step 1: Set up your local environment
+## First-time setup
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+When you first open Nimaz, you'll go through a guided onboarding process.
+
+<Steps>
+  <Step title="Welcome to Nimaz">
+    The app opens with a welcome screen introducing Nimaz and its key features:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    - Accurate prayer times
+    - Complete Quran with audio
+    - Authentic Hadith collections
+    - Daily duas and supplications
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+    Tap **Next** to continue.
+  </Step>
+  
+  <Step title="Grant location permission">
+    Nimaz needs your location to calculate accurate prayer times based on where you are.
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    When prompted, tap **Grant Location Access** and select:
+    - **Allow** or **While using the app** (recommended)
+    
+    <Note>
+    Location access enables:
+    - Automatic prayer time calculation
+    - Precise Qibla direction
+    - Distance to Mecca
+    - Automatic location detection when traveling
+    </Note>
+    
+    Once granted, Nimaz will automatically detect your city and location name (e.g., "Dublin, Ireland").
+  </Step>
+  
+  <Step title="Enable notifications">
+    Get reminded for prayer times with beautiful Adhan notifications.
+    
+    Tap **Enable Notifications** and allow the permission. You can customize:
+    - Adhan sounds
+    - Pre-prayer reminders
+    - Notification timing
+    - Quiet hours
+    
+    <Warning>
+    On Android 13+, notification permission must be explicitly granted. Without it, you won't receive prayer time alerts.
+    </Warning>
+  </Step>
+  
+  <Step title="Disable battery optimization">
+    For reliable prayer notifications, disable battery optimization for Nimaz.
+    
+    Tap **Disable Battery Optimization** and select:
+    - **Allow** or **Don't optimize**
+    
+    This ensures Nimaz can deliver prayer notifications on time, even when your phone is in sleep mode or when you're not actively using the app.
+    
+    <Note>
+    Battery optimization can prevent background apps from running, which may cause missed prayer notifications. Disabling it for Nimaz ensures consistent alerts.
+    </Note>
+  </Step>
+  
+  <Step title="Complete setup">
+    Tap **Get Started** to finish onboarding and enter the main app.
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Home screen overview
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+After setup, you'll see the home screen with several key sections:
 
-### Step 3: Go live
+### Header section
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+- **Location name** - Your detected city and country
+- **Date display** - Both Hijri and Gregorian dates
+- **Next prayer countdown** - Large countdown timer showing hours, minutes, and seconds until the next prayer
+- **Prayer name** - Display name and Arabic text for the next prayer
+
+### Today's progress
+
+A visual progress bar showing how many of the five daily prayers you've completed:
+
+- Fajr, Dhuhr, Asr, Maghrib, Isha
+- Tap the checkbox next to each prayer to mark it as prayed
+- Track your daily completion rate
+
+<Note>
+Sunrise is shown for reference but isn't counted in the daily prayer total since it's not an obligatory prayer time.
+</Note>
+
+### Prayer times list
+
+All prayer times for today with color-coded indicators:
+
+- **Fajr** (Indigo) - Pre-dawn prayer
+- **Sunrise** (Amber) - Forbidden prayer time marker
+- **Dhuhr** (Yellow) - Noon prayer
+- **Asr** (Orange) - Afternoon prayer
+- **Maghrib** (Red) - Sunset prayer
+- **Isha** (Violet) - Night prayer
+
+The current or next prayer is highlighted with a colored border.
+
+### Special cards
+
+**Friday Jumu'ah card** (shown only on Fridays):
+- Jumu'ah greeting in Arabic
+- Khutbah (sermon) time
+- Countdown to Jumu'ah
+- Inspirational Hadith quote
+
+## Configure prayer settings
+
+Customize how prayer times are calculated for your location.
+
+<Steps>
+  <Step title="Open prayer settings">
+    From the home screen:
+    1. Tap the **Settings** icon in the top right
+    2. Scroll to **Prayer Settings** section
+    3. Tap **Calculation Method**
+  </Step>
+  
+  <Step title="Choose calculation method">
+    Select the calculation method used in your region:
+    
+    - **Muslim World League** (Default)
+    - **Islamic Society of North America (ISNA)**
+    - **Egyptian General Authority of Survey**
+    - **Umm al-Qura University, Makkah**
+    - **University of Islamic Sciences, Karachi**
+    - **Institute of Geophysics, Tehran**
+    - **Shia Ithna-Ashari, Leva Research Institute, Qum**
+    - **And more...**
+    
+    <Note>
+    Different regions use different calculation methods. For example, North America typically uses ISNA, while Saudi Arabia uses Umm al-Qura.
+    </Note>
+  </Step>
+  
+  <Step title="Adjust prayer times (optional)">
+    Fine-tune individual prayer times if needed:
+    
+    1. Go to **Prayer Settings**
+    2. Tap on a specific prayer (e.g., Fajr)
+    3. Add or subtract minutes to adjust the time
+    
+    This is useful if your local mosque uses slightly different timings.
+  </Step>
+  
+  <Step title="Configure notifications">
+    Customize when and how you receive prayer notifications:
+    
+    1. Go to **Settings > Notifications**
+    2. Enable notifications for specific prayers
+    3. Choose Adhan sound or use device default
+    4. Set pre-prayer reminders (5, 10, 15, or 30 minutes before)
+    5. Configure quiet hours (e.g., during sleep)
+  </Step>
+</Steps>
+
+## Explore key features
+
+Now that you're set up, explore what Nimaz has to offer:
+
+### Read the Quran
+
+<Steps>
+  <Step title="Open Quran reader">
+    From the home screen, tap the **Quran** tab in the bottom navigation.
+  </Step>
+  
+  <Step title="Choose reading mode">
+    - **Surah list** - Browse all 114 surahs
+    - **Juz' list** - Read by Juz' (30 sections)
+    - **Page view** - Mushaf-style page-by-page reading
+  </Step>
+  
+  <Step title="Customize reading experience">
+    Tap the settings icon to:
+    - Select translation language
+    - Adjust text size
+    - Enable/disable Arabic text
+    - Choose transliteration
+    - Select audio reciter
+  </Step>
+</Steps>
+
+### Find Qibla direction
+
+<Steps>
+  <Step title="Open Qibla finder">
+    From the home screen, tap the **Qibla** tab in the bottom navigation.
+  </Step>
+  
+  <Step title="Calibrate compass">
+    Move your device in a figure-8 pattern to calibrate the compass for accurate direction.
+  </Step>
+  
+  <Step title="Face the Qibla">
+    Rotate until the compass arrow points directly up (0°). You're now facing the Qibla direction toward Mecca.
+    
+    <Note>
+    Tap **AR View** to use augmented reality mode, which overlays the Qibla direction on your camera view.
+    </Note>
+  </Step>
+</Steps>
+
+### Track your prayers
+
+<Steps>
+  <Step title="Mark prayers as completed">
+    On the home screen, tap the checkbox next to each prayer after you've prayed it. This helps you:
+    - Track daily completion
+    - Build prayer streaks
+    - View statistics over time
+  </Step>
+  
+  <Step title="View prayer statistics">
+    Go to **More > Prayer Tracker** to see:
+    - Current prayer streak
+    - Monthly statistics
+    - Prayer completion charts
+    - Qada (missed) prayers counter
+  </Step>
+  
+  <Step title="Make up missed prayers">
+    If you have Qada prayers to make up:
+    1. Go to **More > Prayer Tracker > Qada Prayers**
+    2. Add the number of missed prayers
+    3. Mark them off as you complete them
+  </Step>
+</Steps>
+
+### Use the Tasbih counter
+
+<Steps>
+  <Step title="Open Tasbih">
+    From the home screen, tap the **Tasbih** tab in the bottom navigation.
+  </Step>
+  
+  <Step title="Start counting">
+    Tap the large counter button to increment. The app provides:
+    - Vibration feedback (can be disabled)
+    - Audio feedback option
+    - Visual counter display
+  </Step>
+  
+  <Step title="Use presets">
+    Choose from common presets:
+    - SubhanAllah (33x)
+    - Alhamdulillah (33x)
+    - Allahu Akbar (34x)
+    - Or create custom presets
+  </Step>
+</Steps>
+
+### Add home screen widgets
+
+Nimaz offers 5 beautiful widgets for your home screen:
+
+<Steps>
+  <Step title="Open widget settings">
+    Go to **More > App Settings > Widgets** to see all available widgets.
+  </Step>
+  
+  <Step title="Add widget to home screen">
+    1. Long-press on your home screen
+    2. Tap **Widgets**
+    3. Find **Nimaz** in the widget list
+    4. Choose your preferred widget:
+       - **Prayer Times** - All daily prayer times
+       - **Next Prayer** - Countdown to next prayer
+       - **Hijri Date** - Current Islamic date
+       - **Prayer Tracker** - Today's prayer completion
+       - **Hijri Calendar** - Monthly calendar view
+    5. Drag to place it on your home screen
+  </Step>
+</Steps>
+
+## Customize appearance
+
+Personalize Nimaz to match your preferences:
+
+<Steps>
+  <Step title="Choose theme">
+    Go to **More > App Settings > Appearance**:
+    - **Light mode** - Bright interface
+    - **Dark mode** - Easy on the eyes
+    - **System default** - Follows device theme
+  </Step>
+  
+  <Step title="Adjust date format">
+    Choose which date to display prominently:
+    - **Hijri primary** - Islamic date shown first
+    - **Gregorian primary** - Standard calendar first
+  </Step>
+  
+  <Step title="Animation preferences">
+    Toggle animations on/off based on your preference for a more static or dynamic interface.
+  </Step>
+</Steps>
+
+## Change language
+
+Nimaz supports multiple languages:
+
+1. Go to **More > App Settings > Language**
+2. Select your preferred language
+3. The app will restart with the new language
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+You're all set! Here's what to explore next:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Explore Hadith" icon="book" href="/features/hadith">
+    Read authentic Hadith from major collections
+  </Card>
+  
+  <Card title="Learn Duas" icon="hands-praying" href="/features/duas">
+    Daily supplications for various occasions
+  </Card>
+  
+  <Card title="Hijri calendar" icon="calendar" href="/features/calendar">
+    View Islamic calendar and important dates
+  </Card>
+  
+  <Card title="Zakat calculator" icon="calculator" href="/features/zakat">
+    Calculate your Zakat obligations
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Getting help
+
+Need assistance? Contact us through the app or visit our GitHub repository:
+
+**More > Support > Help & Support**

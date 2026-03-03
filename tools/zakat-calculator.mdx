@@ -1,0 +1,249 @@
+---
+title: Zakat calculator
+description: Calculate Zakat obligations on wealth and assets
+---
+
+The Zakat calculator helps users determine their Zakat obligation by calculating 2.5% of eligible wealth that exceeds the nisab threshold.
+
+## Features
+
+### Result summary card
+
+A prominent gold gradient card displays:
+
+- **Zakat due amount**: Large, bold display of calculated Zakat
+- **Percentage**: "2.5% of eligible wealth" explanation
+- **Nisab status**: Whether wealth exceeds the nisab threshold
+- **Nisab type**: Gold or Silver standard used
+- **Nisab value**: Current threshold amount in user's currency
+
+The card uses a gold gradient design (from gold to darker gold) to emphasize the sacred nature of Zakat.
+
+### Nisab type selector
+
+Two options for nisab calculation:
+
+**Gold nisab**
+- Weight: 87.48 grams (7.5 tola)
+- Updates with current gold price per gram
+- Typically results in higher threshold
+- Displayed with gold accent color
+
+**Silver nisab**
+- Weight: 612.36 grams (52.5 tola)
+- Updates with current silver price per gram
+- Generally results in lower threshold
+- Displayed with silver accent color
+
+Users can tap either card to select their preferred nisab standard. Selected option shows colored background and border.
+
+### Assets section
+
+Comprehensive input fields for all zakatable assets:
+
+**Cash and liquid assets**
+- Cash on hand (physical currency)
+- Bank balance (all accounts combined)
+
+**Precious metals**
+- Gold (entered in grams, converted to value)
+- Silver (entered in grams, converted to value)
+
+**Investments and business**
+- Investments (stocks, bonds, mutual funds)
+- Business inventory (goods held for trade)
+- Receivables (money owed to you)
+- Rental income (from properties)
+
+**Other assets**
+- Any other zakatable assets
+
+Each input card shows:
+- Colored icon representing the asset type
+- Asset label and description hint
+- Compact amount input field with currency prefix
+- Real-time total calculation
+
+### Liabilities section
+
+Debt and liability inputs:
+
+**Deductible liabilities**
+- Debts owed (personal debts)
+- Loans (bank or personal loans)
+- Bills due (outstanding bills)
+- Other liabilities
+
+All liability fields display with red accent color to distinguish from assets.
+
+### Calculation breakdown
+
+A detailed breakdown card shows:
+
+1. **Total assets**: Sum of all asset values
+2. **Total liabilities**: Sum of all debts (shown with minus)
+3. **Net zakatable wealth**: Assets minus liabilities
+4. **Nisab threshold**: Current nisab value
+5. **Meets nisab**: Yes/No indicator (green/red)
+6. **Zakat due**: Final 2.5% calculation
+
+## How users interact
+
+### Initial calculation
+
+1. **Select nisab type**: Choose gold or silver standard
+2. **Enter assets**: Input all applicable asset values
+3. **Enter liabilities**: Input any debts or liabilities
+4. **View result**: Zakat amount calculates automatically
+
+### Input management
+
+**Entering values:**
+- Tap any input field to activate keyboard
+- Enter numeric values (decimal supported)
+- Currency prefix ($) displays automatically
+- For metals, enter weight in grams with "g" suffix
+- Empty fields treated as zero
+
+**Real-time calculation:**
+- Zakat updates instantly as values change
+- No calculate button needed
+- All displays refresh automatically
+- Progress tracked in real-time
+
+### Saving calculations
+
+1. Review the calculation breakdown
+2. Tap "Save Calculation" button at the bottom
+3. Calculation saved to history with timestamp
+4. Includes all entered values and results
+
+### Accessing history
+
+1. Tap the history icon in the top app bar
+2. View previous Zakat calculations
+3. See dates and amounts from past calculations
+4. Track Zakat payments over time
+
+### Resetting calculator
+
+1. Tap the refresh icon in the top app bar
+2. All input fields clear to zero
+3. Calculation resets
+4. Start fresh calculation
+
+## Calculation method
+
+### Nisab threshold
+
+```
+nisabValue = nisabWeight × metalPricePerGram
+```
+
+**For gold:**
+```
+nisabValue = 87.48g × goldPrice
+```
+
+**For silver:**
+```
+nisabValue = 612.36g × silverPrice
+```
+
+### Net worth calculation
+
+```
+totalAssets = cash + bank + goldValue + silverValue + 
+              investments + inventory + receivables + 
+              rental + other
+
+netWorth = totalAssets - totalLiabilities
+```
+
+### Zakat due
+
+```
+if (netWorth >= nisabValue) {
+  zakatDue = netWorth × 0.025  // 2.5%
+} else {
+  zakatDue = 0
+}
+```
+
+### Metal value conversion
+
+```
+goldValue = goldGrams × goldPricePerGram
+silverValue = silverGrams × silverPricePerGram
+```
+
+These values are added to the total assets.
+
+## Input card design
+
+Each input card features:
+
+**Visual elements:**
+- Icon in colored rounded square (40dp)
+- Two-line text (label and hint)
+- Compact input field (100dp width)
+- Rounded corners (14dp radius)
+- Surface container high background
+
+**Icon colors:**
+- Cash: Gold accent
+- Investments: Primary color
+- Liabilities: Red/error color
+- Metals: Gold/silver accent colors
+
+**Input field:**
+- Displays current value or zero placeholder
+- Currency prefix for monetary values
+- Weight suffix ("g") for metals
+- Decimal keyboard for numeric entry
+- Right-aligned text display
+
+## Breakdown display
+
+The breakdown section provides transparency:
+
+**Visual hierarchy:**
+- Section title: "Calculation Breakdown"
+- Rounded card with padding
+- Rows with label and value pairs
+- Horizontal dividers for sections
+- Bold text for key totals
+
+**Color coding:**
+- Assets: Primary color
+- Liabilities: Error/red color (with minus)
+- Net worth: Default color, bold
+- Nisab status: Primary (yes) or error (no)
+- Zakat due: Gold color, bold
+
+**Save button:**
+- Full-width primary colored card
+- Centered white text
+- "Save Calculation" label
+- Rounded corners
+- Tappable for saving
+
+## Technical implementation
+
+Relevant source files:
+- `ZakatModels.kt` - Data models and calculator
+- `ZakatCalculatorScreen.kt` - Main calculator UI
+- `ZakatHistoryScreen.kt` - Saved calculations
+- `ZakatViewModel.kt` - State management
+
+Key data structures:
+- `ZakatAssets` - All asset categories
+- `ZakatLiabilities` - All liability categories
+- `ZakatCalculation` - Complete calculation result
+- `NisabType` - Gold or Silver enumeration
+- `MetalPrice` - Current metal prices
+
+Zakat constants:
+- Rate: 2.5% (0.025)
+- Gold nisab: 87.48 grams
+- Silver nisab: 612.36 grams

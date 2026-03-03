@@ -1,0 +1,254 @@
+---
+title: Hijri calendar
+description: Islamic calendar with important dates and events
+---
+
+The Hijri calendar displays Islamic dates alongside Gregorian dates and highlights important Islamic events throughout the year.
+
+## Features
+
+### Today hero card
+
+A prominent gradient card at the top displays:
+
+- **Current Hijri date**: Day, month name, and year
+- **Arabic month name**: Displayed in Arabic script
+- **Gregorian date**: Full date with day name
+- **"Today" label**: Clear indication of current date
+
+The card uses a gradient from primary to primary container colors for visual emphasis.
+
+### Calendar view
+
+Interactive monthly calendar with:
+
+**Header information:**
+- Hijri month name and year (e.g., "Ramadan 1445")
+- Arabic month name in Amiri font
+- Previous/next month navigation arrows
+
+**Calendar grid:**
+- Standard 7-day week layout
+- Day numbers for both current and adjacent months
+- Current day highlighted with primary color
+- Selected day shows distinct background
+- Event indicators as colored dots below dates
+
+**Event color coding:**
+- Gold (yellow): Eid celebrations and holidays
+- Green: Holy nights (Laylat al-Qadr, Shab-e-Barat)
+- Purple: Fasting days (Ashura, Day of Arafah)
+
+### Event listings
+
+Two event sections display:
+
+**Events for selected date:**
+- Shows all events occurring on the selected day
+- Full event cards with details
+- Arabic and English names
+- Event descriptions and significance
+
+**Upcoming events:**
+- Next 5 upcoming Islamic events
+- Chronological order by date
+- Helps users plan ahead
+- Shows distance in days/months
+
+### Islamic events database
+
+The calendar includes pre-configured important events:
+
+**Muharram (Month 1):**
+- Islamic New Year (1st Muharram)
+- Day of Ashura (10th Muharram) - Fasting recommended
+
+**Rabi' al-Awwal (Month 3):**
+- Mawlid an-Nabi (12th) - Birth of Prophet Muhammad (PBUH)
+
+**Rajab (Month 7):**
+- Isra and Mi'raj (27th) - Night Journey and Ascension
+
+**Sha'ban (Month 8):**
+- Shab-e-Barat (15th) - Night of Forgiveness
+
+**Ramadan (Month 9):**
+- Start of Ramadan (1st) - Beginning of fasting month
+- Laylat al-Qadr (odd nights 21, 23, 25, 27, 29) - Night of Power
+  - 27th is the most commonly observed date
+  - All odd nights of last 10 days are possibilities
+
+**Shawwal (Month 10):**
+- Eid al-Fitr (1st) - Festival of Breaking the Fast
+
+**Dhu al-Hijjah (Month 12):**
+- Day of Arafah (9th) - Fasting recommended for non-pilgrims
+- Eid al-Adha (10th) - Festival of Sacrifice
+
+## How users interact
+
+### Viewing the calendar
+
+1. **Open calendar**: Navigate to the Islamic calendar screen
+2. **See today's date**: Review the hero card at the top
+3. **Browse calendar**: Scroll to see the monthly calendar grid
+4. **Check events**: Look for colored dots under dates
+
+### Navigating months
+
+**Change months:**
+1. Tap the left arrow for previous month
+2. Tap the right arrow for next month
+3. Month name updates to show Hijri month and year
+4. Calendar grid refreshes with new dates
+
+**Return to today:**
+1. Tap the "Today" icon in the top app bar
+2. Calendar jumps to current date
+3. Today's date is highlighted
+4. Events for today appear below
+
+### Selecting dates
+
+1. **Tap any date** in the calendar grid
+2. Selected date gets highlighted background
+3. Hero card updates to show selected date
+4. Events for that date appear in the events section
+5. Upcoming events refresh relative to selected date
+
+### Viewing event details
+
+**Event cards display:**
+- Arabic name in Amiri font
+- English name in title style
+- Event type badge (Holiday, Fast, Night, Historical)
+- Description of significance
+- Additional notes when applicable
+- Date information (Hijri and Gregorian)
+
+### Understanding event types
+
+**Holiday events:**
+- Major Islamic celebrations
+- Eid al-Fitr and Eid al-Adha
+- Islamic New Year
+- Marked with gold color
+
+**Fasting days:**
+- Recommended or significant fasting days
+- Day of Ashura, Day of Arafah
+- Start of Ramadan
+- Marked with purple color
+
+**Holy nights:**
+- Special nights for worship
+- Laylat al-Qadr, Shab-e-Barat
+- Isra and Mi'raj
+- Marked with green color
+
+**Historical events:**
+- Commemorative dates
+- Mawlid an-Nabi
+- Educational significance
+- Marked with green color
+
+## Calendar legend
+
+Three legend items explain the color coding:
+
+1. **Gold indicator**: Eid (festivals and celebrations)
+2. **Green indicator**: Holy Night (special nights of worship)
+3. **Purple indicator**: Fasting (recommended fasting days)
+
+The legend appears below the calendar grid for easy reference.
+
+## Date calculations
+
+### Hijri date conversion
+
+The app converts between Gregorian and Hijri dates:
+
+- Uses astronomical calculations
+- Accounts for lunar month cycles
+- Adjusts for regional differences
+- Maintains accuracy across years
+
+### Month information
+
+Each Hijri month has:
+- Number (1-12)
+- English name (e.g., "Ramadan")
+- Arabic name in Unicode (e.g., "رمضان")
+- 29 or 30 days (lunar cycle)
+
+### Day state calculation
+
+For each calendar day, the app determines:
+- Gregorian date
+- Corresponding Hijri date
+- Whether it's today
+- Whether it's in the current month
+- Any events occurring on that date
+- Appropriate indicator color
+
+## Calendar month structure
+
+The calendar displays:
+
+**Current month days:**
+- Full opacity and contrast
+- Tappable and selectable
+- Show event indicators
+
+**Adjacent month days:**
+- Reduced opacity
+- Fill out the calendar grid
+- Maintain weekly structure
+
+**Week starts:**
+- Configurable (typically Sunday or Monday)
+- Matches user's locale preferences
+- Consistent throughout calendar
+
+## Event card components
+
+Each event card includes:
+
+**Visual elements:**
+- Rounded corners (12dp radius)
+- Surface container background
+- Adequate padding (16dp)
+- Clear typography hierarchy
+
+**Text content:**
+- Arabic name (large, Amiri font)
+- English name (bold, title medium)
+- Description (body medium)
+- Notes (caption, if applicable)
+
+**Event metadata:**
+- Hijri month and day
+- Event type classification
+- Holiday/fasting status flags
+- Priority for display ordering
+
+## Technical implementation
+
+Relevant source files:
+- `IslamicCalendarModels.kt` - Data models and events
+- `IslamicCalendarScreen.kt` - Calendar UI
+- `CalendarViewModel.kt` - State management
+- `HijriDateCalculator.kt` - Date conversion logic
+
+Key data structures:
+- `HijriDate` - Day, month, year representation
+- `IslamicEvent` - Event details and metadata
+- `CalendarDay` - Combined Gregorian and Hijri date
+- `CalendarMonth` - Complete month with events
+- `HijriMonth` - Month enumeration with names
+
+Event types:
+- `HOLIDAY` - Major celebrations
+- `FAST` - Fasting days
+- `NIGHT` - Special worship nights
+- `HISTORICAL` - Commemorative dates

@@ -1,0 +1,343 @@
+---
+title: Audio manager
+description: Audio playback system for Adhan and Quran recitation
+---
+
+Nimaz includes a comprehensive audio system for playing Adhan (call to prayer) and Quran recitations using Android's Media3 (ExoPlayer) library.
+
+## Audio services
+
+The app uses two foreground services for audio playback:
+
+1. **AdhanPlaybackService** - Plays Adhan at prayer times
+2. **QuranAudioService** - Streams or plays downloaded Quran recitations
+
+Both services use Media3 with MediaSession for:
+- Notification controls (play, pause, stop)
+- Background playback
+- Audio focus management
+- Lock screen controls
+
+## AdhanPlaybackService
+
+Foreground service that plays Adhan sounds when prayer notifications trigger.
+
+**Source**: `data/audio/AdhanPlaybackService.kt`
+
+### Features
+
+- **Automatic playback** when prayer time arrives
+- **Volume management** (uses alarm stream for reliability)
+- **Wake lock** to ensure playback completes
+- **Notification controls** to stop adhan
+- **Vibration pattern** during playback
+- **Audio focus handling** (pauses other audio)
+
+### Starting adhan playback
+
+```kotlin
+companion object {
+    fun playAdhan(
+        context: Context,
+        adhanSound: AdhanSound,
+        prayerName: String
+    ) {
+        val intent = Intent(context, AdhanPlaybackService::class.java).apply {
+            action = ACTION_PLAY_ADHAN
+            putExtra(EXTRA_ADHAN_SOUND, adhanSound.name)
+            putExtra(EXTRA_PRAYER_NAME, prayerName)
+        }
+        context.startForegroundService(intent)
+    }
+
+    fun stopAdhan(context: Context) {
+        val intent = Intent(context, AdhanPlaybackService::class.java).apply {
+            action = ACTION_STOP_ADHAN
+        }
+        context.startService(intent)
+    }
+}
+```
+
+### Adhan sounds
+
+Four adhan sound options:
+
+```kotlin
+enum class AdhanSound(val fileName: String, val displayName: String) {
+    MISHARY("mishary.mp3", "Mishary Alafasy"),
+    ABDUL_BASIT("abdul_basit.mp3", "Abdul Basit"),
+    MAKKAH("makkah.mp3", "Makkah"),
+    SIMPLE_BEEP("simple.mp3", "Simple Beep")
+}
+```
+
+**Source**: `data/audio/AdhanSound.kt`
+
+### Service lifecycle
+
+<Steps>
+  <Step title="Service started">
+    When prayer time arrives, `BootReceiver` starts `AdhanPlaybackService` with the configured adhan sound.
+  </Step>
+
+  <Step title="Foreground notification">
+    Service displays a notification with prayer name and stop button.
+  </Step>
+
+  <Step title="ExoPlayer initialization">
+    Media3 ExoPlayer is configured with the adhan audio file.
+  </Step>
+
+  <Step title="Playback starts">
+    Adhan plays with full volume on the alarm audio stream.
+  </Step>
+
+  <Step title="Completion or stop">
+    Service stops itself when playback completes or user taps stop button.
+  </Step>
+</Steps>
+
+### Notification controls
+
+The foreground notification includes:
+- Prayer name and time
+- Stop button (PendingIntent)
+- Tap to open app action
+
+```kotlin
+private fun createNotification(prayerName: String): Notification {
+    return NotificationCompat.Builder(this, CHANNEL_ID)
+        .setContentTitle("Adhan for $prayerName")
+        .setContentText("Playing adhan...")
+        .setSmallIcon(R.drawable.ic_prayer)
+        .addAction(
+            R.drawable.ic_stop,
+            "Stop",
+            stopPendingIntent
+        )
+        .setOngoing(true)
+        .build()
+}
+```
+
+## AdhanDownloadService
+
+Foreground service for downloading adhan audio files.
+
+**Source**: `data/audio/AdhanDownloadService.kt`
+
+### Features
+
+- **Background downloads** with progress notification
+- **Storage management** in app-specific directory
+- **Download verification** (checks file size and integrity)
+- **Automatic default download** on first app launch
+
+### Starting a download
+
+```kotlin
+companion object {
+    fun downloadAdhan(
+        context: Context,
+        adhanSound: AdhanSound
+    ) {
+        val intent = Intent(context, AdhanDownloadService::class.java).apply {
+            action = ACTION_DOWNLOAD
+            putExtra(EXTRA_ADHAN_SOUND, adhanSound.name)
+        }
+        context.startForegroundService(intent)
+    }
+
+    fun downloadDefault(context: Context) {
+        downloadAdhan(context, AdhanSound.MISHARY)
+    }
+}
+```
+
+### Default download on first launch
+
+In `NimazApp.onCreate()`:
+
+```kotlin
+private fun downloadDefaultAdhanIfNeeded() {
+    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        try {
+            val defaultSound = AdhanSound.MISHARY
+            if (!adhanAudioManager.isFullyDownloaded(defaultSound)) {
+                AdhanDownloadService.downloadDefault(this@NimazApp)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+```
+
+**Source**: `NimazApp.kt:98-111`
+
+## AdhanAudioManager
+
+Manages adhan file storage and verification.
+
+**Source**: `data/audio/AdhanAudioManager.kt`
+
+### Methods
+
+```kotlin
+class AdhanAudioManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    fun getAdhanFile(sound: AdhanSound): File
+    fun isFullyDownloaded(sound: AdhanSound): Boolean
+    fun deleteAdhan(sound: AdhanSound): Boolean
+    fun getDownloadedSounds(): List<AdhanSound>
+}
+```
+
+### Storage location
+
+Adhan files are stored in:
+```
+/data/data/com.arshadshah.nimaz/files/adhan/
+├── mishary.mp3
+├── abdul_basit.mp3
+├── makkah.mp3
+└── simple.mp3
+```
+
+## QuranAudioService
+
+Foreground service for Quran recitation playback.
+
+**Source**: `data/audio/QuranAudioService.kt`
+
+### Features
+
+- **Streaming audio** from online sources
+- **Local playback** for downloaded recitations
+- **Surah or ayah range playback**
+- **Playback controls** (play, pause, seek, next, previous)
+- **Repeat modes** (single ayah, surah, all)
+- **Playback speed** adjustment
+- **Media session** integration for lock screen and notification controls
+
+### Starting Quran playback
+
+```kotlin
+companion object {
+    fun playSurah(
+        context: Context,
+        surahNumber: Int,
+        reciterId: String = "ar.abdurrahmanalsudais"
+    ) {
+        val intent = Intent(context, QuranAudioService::class.java).apply {
+            action = ACTION_PLAY_SURAH
+            putExtra(EXTRA_SURAH_NUMBER, surahNumber)
+            putExtra(EXTRA_RECITER_ID, reciterId)
+        }
+        context.startForegroundService(intent)
+    }
+
+    fun playAyahRange(
+        context: Context,
+        surahNumber: Int,
+        fromAyah: Int,
+        toAyah: Int,
+        reciterId: String = "ar.abdurrahmanalsudais"
+    ) {
+        val intent = Intent(context, QuranAudioService::class.java).apply {
+            action = ACTION_PLAY_AYAH_RANGE
+            putExtra(EXTRA_SURAH_NUMBER, surahNumber)
+            putExtra(EXTRA_FROM_AYAH, fromAyah)
+            putExtra(EXTRA_TO_AYAH, toAyah)
+            putExtra(EXTRA_RECITER_ID, reciterId)
+        }
+        context.startForegroundService(intent)
+    }
+
+    fun pause(context: Context)
+    fun resume(context: Context)
+    fun stop(context: Context)
+}
+```
+
+### Available reciters
+
+Quran audio sources from [EveryAyah.com](https://everyayah.com):
+
+- Abdul Rahman Al-Sudais (`ar.abdurrahmanalsudais`)
+- Mishary Rashid Alafasy (`ar.misharyalafasy`)
+- Abdul Basit (`ar.abdulbasitmurattal`)
+- And more...
+
+### Media session controls
+
+The service exposes standard media controls:
+
+- **Play/Pause**
+- **Skip to next ayah**
+- **Skip to previous ayah**
+- **Seek within ayah**
+- **Stop playback**
+
+These controls appear in:
+- Notification
+- Lock screen
+- Android Auto
+- Wear OS
+
+## Audio focus management
+
+Both services request audio focus to ensure:
+- Only one audio stream plays at a time
+- Other apps pause when adhan/Quran plays
+- Playback resumes after interruptions (like phone calls)
+
+```kotlin
+private fun requestAudioFocus(): Boolean {
+    val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    val result = audioManager.requestAudioFocus(
+        audioFocusChangeListener,
+        AudioManager.STREAM_MUSIC,
+        AudioManager.AUDIOFOCUS_GAIN
+    )
+    return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+}
+```
+
+## Dependencies
+
+Audio playback uses Media3 (ExoPlayer):
+
+```kotlin
+implementation("androidx.media3:media3-exoplayer:1.9.0")
+implementation("androidx.media3:media3-ui:1.9.0")
+implementation("androidx.media3:media3-session:1.9.0")
+```
+
+**Source**: `app/build.gradle.kts:108-111`
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Always use foreground services for audio">
+    Android requires foreground services for background audio playback. Both services display persistent notifications.
+  </Accordion>
+
+  <Accordion title="Request audio focus before playback">
+    Ensures your audio doesn't conflict with other apps and system sounds.
+  </Accordion>
+
+  <Accordion title="Handle interruptions gracefully">
+    Implement audio focus change listeners to pause/resume on phone calls or notifications.
+  </Accordion>
+
+  <Accordion title="Use wake locks for adhan">
+    Adhan playback uses PARTIAL_WAKE_LOCK to ensure audio plays even if screen is off.
+  </Accordion>
+
+  <Accordion title="Clean up resources">
+    Release ExoPlayer, media session, and wake locks in service onDestroy().
+  </Accordion>
+</AccordionGroup>

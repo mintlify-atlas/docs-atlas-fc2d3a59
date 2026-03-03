@@ -1,0 +1,319 @@
+---
+title: Prayer times widget
+description: Display all five daily prayer times with live countdown to the next prayer on your Android home screen
+---
+
+The Prayer Times widget provides a comprehensive view of all five daily prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) with your location and the time remaining until the next prayer.
+
+## Features
+
+- **All five prayer times** displayed in a single view
+- **Live countdown** to the next prayer, updated every minute
+- **Location display** showing your configured city
+- **Hijri date** displayed in the header
+- **Visual indicators** showing which prayers have passed
+- **Tap to open** the main app for full functionality
+
+## Widget appearance
+
+The widget displays:
+
+### Header section
+
+- **Left side**: Location name and Hijri date
+- **Right side**: Next prayer name and countdown (e.g., "Dhuhr in 2h 30m")
+
+### Prayer times row
+
+A horizontal row showing all five prayers:
+
+| Prayer | Display |
+|--------|--------|
+| Fajr | Name and time |
+| Dhuhr | Name and time |
+| Asr | Name and time |
+| Maghrib | Name and time (shortened to "Mgrb") |
+| Isha | Name and time |
+
+Prayers that have passed are shown in a dimmed color to help you quickly identify upcoming prayers.
+
+<Note>
+The widget automatically highlights the next prayer and dims prayers that have already passed for the day.
+</Note>
+
+## Adding the widget
+
+<Steps>
+  <Step title="Access widget picker">
+    Long-press on your home screen and select "Widgets" from the menu.
+  </Step>
+  
+  <Step title="Find Prayer Times widget">
+    Scroll to the Nimaz section and find "Prayer Times" widget.
+  </Step>
+  
+  <Step title="Drag to home screen">
+    Drag the widget to your desired location. The widget is a fixed size optimized for readability.
+  </Step>
+  
+  <Step title="Verify data">
+    The widget will show "Loading..." briefly, then display your prayer times. If you see "Tap to setup", open the app to configure your location.
+  </Step>
+</Steps>
+
+## Live countdown feature
+
+The widget displays a live countdown to the next prayer that updates approximately every minute.
+
+### Countdown format
+
+The countdown adapts based on time remaining:
+
+- **More than 1 hour**: Shows hours and minutes (e.g., "2h 30m")
+- **Less than 1 hour**: Shows minutes and seconds (e.g., "45m 12s")
+- **Less than 1 minute**: Shows only seconds (e.g., "42s")
+
+### Update mechanism
+
+The countdown uses `WidgetUpdateScheduler` which schedules per-minute updates via AlarmManager:
+
+```kotlin
+// From WidgetUpdateScheduler.kt
+fun computeCountdown(targetEpochMillis: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = targetEpochMillis - now
+    val totalSeconds = diff / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    
+    return when {
+        hours > 0 -> "${hours}h ${minutes}m"
+        minutes > 0 -> "${minutes}m ${seconds}s"
+        else -> "${seconds}s"
+    }
+}
+```
+
+See widget/WidgetUpdateScheduler.kt:65 for the full countdown calculation.
+
+## Implementation details
+
+### Widget structure
+
+The widget is implemented using Jetpack Glance composables:
+
+```kotlin
+class PrayerTimesWidget : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<PrayerTimesWidgetState> =
+        PrayerTimesStateDefinition
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            GlanceTheme {
+                val state = currentState<PrayerTimesWidgetState>()
+                PrayerTimesContent(state)
+            }
+        }
+    }
+}
+```
+
+See widget/prayertimes/PrayerTimesWidget.kt:37 for the widget implementation.
+
+### Widget states
+
+The widget manages three states:
+
+<CodeGroup>
+```kotlin Loading state
+data object Loading : PrayerTimesWidgetState
+// Shows circular progress indicator with "Loading..." text
+```
+
+```kotlin Success state
+data class Success(val data: PrayerTimesData) : PrayerTimesWidgetState
+
+data class PrayerTimesData(
+    val locationName: String,
+    val hijriDate: String,
+    val nextPrayerName: String,
+    val timeUntilNext: String,
+    val fajrTime: String,
+    val dhuhrTime: String,
+    val asrTime: String,
+    val maghribTime: String,
+    val ishaTime: String,
+    val fajrPassed: Boolean,
+    val dhuhrPassed: Boolean,
+    val asrPassed: Boolean,
+    val maghribPassed: Boolean,
+    val ishaPassed: Boolean,
+    val nextPrayerEpochMillis: Long
+)
+```
+
+```kotlin Error state
+data class Error(val message: String?) : PrayerTimesWidgetState
+// Shows "Tap to setup" message
+```
+</CodeGroup>
+
+See widget/prayertimes/PrayerTimesWidgetState.kt:6 for state definitions.
+
+### Update lifecycle
+
+The widget updates through two mechanisms:
+
+#### Periodic data updates
+
+`PrayerTimesWorker` runs periodically to refresh prayer time data:
+
+```kotlin
+class PrayerTimesWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = PrayerTimesWidget()
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        PrayerTimesWorker.enqueuePeriodicWork(context, force = true)
+        WidgetUpdateScheduler.schedule(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        PrayerTimesWorker.cancel(context)
+        WidgetUpdateScheduler.cancel(context)
+    }
+}
+```
+
+See widget/prayertimes/PrayerTimesWidget.kt:218 for the receiver implementation.
+
+#### Countdown tick updates
+
+`WidgetTickReceiver` updates the countdown display every minute:
+
+```kotlin
+class WidgetTickReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        scope.launch {
+            try {
+                NextPrayerWidget().updateAll(context)
+            } catch (_: Exception) {}
+            try {
+                PrayerTimesWidget().updateAll(context)
+            } catch (_: Exception) {}
+        }
+    }
+}
+```
+
+See widget/WidgetUpdateScheduler.kt:84 for the tick receiver.
+
+## Widget manifest registration
+
+The widget is registered in `AndroidManifest.xml`:
+
+```xml
+<receiver
+    android:name=".widget.prayertimes.PrayerTimesWidgetReceiver"
+    android:exported="true"
+    android:label="@string/widget_prayer_times_name">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/prayer_times_widget_info" />
+</receiver>
+```
+
+## Styling and theming
+
+The widget uses these color resources:
+
+```kotlin
+val backgroundColor = ColorProvider(R.color.widget_background)
+val textColor = ColorProvider(R.color.widget_text)
+val textSecondary = ColorProvider(R.color.widget_text_secondary)
+val primaryColor = ColorProvider(R.color.widget_primary)
+```
+
+On Android 12+, these colors automatically adapt to Material You dynamic theming based on the user's wallpaper.
+
+### Visual states
+
+- **Active prayers**: Shown in primary color
+- **Passed prayers**: Shown in dimmed secondary color
+- **Next prayer**: Highlighted with accent color
+- **Background**: Rounded corners with 16dp radius
+
+## Interaction
+
+Tapping anywhere on the widget launches `MainActivity` via:
+
+```kotlin
+.clickable(actionStartActivity<MainActivity>())
+```
+
+This allows users to quickly access the full app for detailed prayer information, settings, or prayer tracking.
+
+## Battery optimization
+
+The widget is designed for battery efficiency:
+
+- Uses `setInexactRepeating()` instead of exact alarms for countdown updates
+- Allows the system to batch updates with other apps
+- Periodic data updates run only when needed
+- No continuous background processes
+
+<Note>
+While countdown updates occur approximately every minute, the system may slightly delay them to optimize battery usage. This is normal Android behavior.
+</Note>
+
+## Troubleshooting
+
+### Widget shows "Tap to setup"
+
+This indicates prayer times haven't been calculated yet.
+
+**Solution**:
+1. Open the Nimaz app
+2. Grant location permission if prompted
+3. Allow the app to calculate prayer times
+4. Return to home screen - widget will update automatically
+
+### Prayer times not updating
+
+If times don't refresh after midnight:
+
+**Solution**:
+1. Check battery optimization settings for Nimaz
+2. Ensure background data is enabled
+3. Tap the widget to force a refresh
+4. If issue persists, remove and re-add the widget
+
+### Countdown stuck or not updating
+
+The countdown may freeze if the system kills the update scheduler.
+
+**Solution**:
+1. Remove battery optimization for Nimaz
+2. Restart your device
+3. Re-add the widget to reinitialize the update scheduler
+
+### Wrong location displayed
+
+The widget shows your configured location from the app.
+
+**Solution**:
+1. Open Nimaz app
+2. Go to Settings → Location
+3. Update your location
+4. Widget will reflect the change after next update
+
+## Related widgets
+
+- [Next prayer widget](/widgets/next-prayer-widget) - Simpler widget showing only the upcoming prayer
+- [Prayer tracker widget](/widgets/prayer-tracker-widget) - Track which prayers you've completed
+- [Hijri date widget](/widgets/hijri-date-widget) - Display today's Islamic date

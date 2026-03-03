@@ -1,0 +1,387 @@
+---
+title: Navigation
+description: Navigation graph, routing, and deep linking in Nimaz
+---
+
+Nimaz uses Jetpack Navigation Compose with type-safe routing for navigating between screens.
+
+## NavGraph
+
+The main navigation graph is defined in `NavGraph.kt`:
+
+```kotlin core/navigation/NavGraph.kt
+@Composable
+fun NavGraph() {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    
+    // Determine if bottom navigation should be shown
+    val showBottomNav = currentDestination?.hierarchy?.any { dest ->
+        dest.hasRoute<Route.Home>() ||
+        dest.hasRoute<Route.Quran>() ||
+        dest.hasRoute<Route.Tasbih>() ||
+        dest.hasRoute<Route.QiblaNav>() ||
+        dest.hasRoute<Route.More>()
+    } == true
+    
+    Scaffold(
+        bottomBar = {
+            if (showBottomNav) {
+                NavigationBar {
+                    bottomNavItems.forEach { item ->
+                        NavigationBarItem(
+                            icon = { Icon(item.icon, item.label) },
+                            label = { Text(item.label) },
+                            selected = /* check if selected */,
+                            onClick = { /* navigate */ }
+                        )
+                    }
+                }
+            }
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.padding(
+                PaddingValues(bottom = innerPadding.calculateBottomPadding())
+            )
+        ) {
+            // Route definitions
+        }
+    }
+}
+```
+
+## Type-safe routing
+
+Nimaz uses Kotlin serialization for type-safe navigation:
+
+```kotlin
+// Define routes as serializable classes
+@Serializable
+sealed class Route {
+    @Serializable
+    data object Home : Route()
+    
+    @Serializable
+    data object Quran : Route()
+    
+    @Serializable
+    data class QuranReader(
+        val surahNumber: Int,
+        val ayahNumber: Int? = null
+    ) : Route()
+    
+    @Serializable
+    data class Tafseer(
+        val surahNumber: Int,
+        val ayahNumber: Int
+    ) : Route()
+    
+    @Serializable
+    data class PrayerTracker(
+        val initialTab: Int = 0
+    ) : Route()
+}
+```
+
+## Bottom navigation
+
+The app uses a bottom navigation bar for primary destinations:
+
+```kotlin core/navigation/NavGraph.kt
+private data class BottomNavItem(
+    val route: Route,
+    val label: String,
+    val icon: ImageVector
+)
+
+private val bottomNavItems = listOf(
+    BottomNavItem(Route.Home, "Home", Icons.Default.Home),
+    BottomNavItem(Route.Quran, "Quran", Icons.Default.MenuBook),
+    BottomNavItem(Route.Tasbih, "Tasbih", Icons.Default.TouchApp),
+    BottomNavItem(Route.QiblaNav, "Qibla", Icons.Default.Explore),
+    BottomNavItem(Route.More, "More", Icons.Default.MoreHoriz)
+)
+```
+
+## Defining routes
+
+### Simple route
+
+```kotlin
+composable<Route.Home> {
+    HomeScreen(
+        onNavigateToQuran = { navController.navigate(Route.Quran) },
+        onNavigateToSettings = { navController.navigate(Route.Settings) },
+        onNavigateToPrayerTracker = { 
+            navController.navigate(Route.PrayerTracker())
+        }
+    )
+}
+```
+
+### Route with parameters
+
+```kotlin
+composable<Route.QuranReader> { backStackEntry ->
+    val args = backStackEntry.toRoute<Route.QuranReader>()
+    QuranReaderScreen(
+        surahNumber = args.surahNumber,
+        initialAyahNumber = args.ayahNumber,
+        onNavigateBack = { navController.popBackStack() },
+        onNavigateToTafseer = { surah, ayah ->
+            navController.navigate(Route.Tafseer(surah, ayah))
+        }
+    )
+}
+```
+
+## Navigation patterns
+
+### Navigate forward
+
+```kotlin
+// Simple navigation
+navController.navigate(Route.Settings)
+
+// With parameters
+navController.navigate(Route.QuranReader(
+    surahNumber = 1,
+    ayahNumber = 1
+))
+```
+
+### Navigate back
+
+```kotlin
+// Pop current screen
+navController.popBackStack()
+
+// Pop to specific destination
+navController.popBackStack(
+    route = Route.Home,
+    inclusive = false
+)
+```
+
+### Replace navigation
+
+```kotlin
+navController.navigate(Route.QuranReader(nextSurah)) {
+    popUpTo<Route.QuranReader> { inclusive = true }
+}
+```
+
+### Single top
+
+Prevent multiple instances of the same destination:
+
+```kotlin
+navController.navigate(Route.Settings) {
+    launchSingleTop = true
+}
+```
+
+### Save and restore state
+
+For bottom navigation:
+
+```kotlin
+navController.navigate(item.route) {
+    popUpTo(navController.graph.findStartDestination().id) {
+        saveState = true
+    }
+    launchSingleTop = true
+    restoreState = true
+}
+```
+
+## Onboarding flow
+
+The app checks onboarding status to determine the start destination:
+
+```kotlin core/navigation/NavGraph.kt
+val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+val onboardingState by onboardingViewModel.state.collectAsState()
+
+// Show loading while checking onboarding status
+if (onboardingState.isLoading) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+    return
+}
+
+// Determine start destination
+val startDestination: Route = if (onboardingState.onboardingCompleted) {
+    Route.Home
+} else {
+    Route.Onboarding
+}
+
+// Onboarding route
+composable<Route.Onboarding> {
+    OnboardingScreen(
+        onComplete = {
+            navController.navigate(Route.Home) {
+                popUpTo(Route.Onboarding) { inclusive = true }
+            }
+        }
+    )
+}
+```
+
+## Nested navigation
+
+### Quran feature
+
+```kotlin
+composable<Route.Quran> {
+    QuranHomeScreen(
+        onNavigateToSurah = { surahNumber ->
+            navController.navigate(Route.QuranReader(surahNumber))
+        },
+        onNavigateToJuz = { juzNumber ->
+            navController.navigate(Route.QuranJuz(juzNumber))
+        },
+        onNavigateToPage = { pageNumber ->
+            navController.navigate(Route.QuranPage(pageNumber))
+        },
+        onNavigateToBookmarks = { 
+            navController.navigate(Route.QuranBookmarks)
+        }
+    )
+}
+
+composable<Route.QuranReader> { backStackEntry ->
+    val args = backStackEntry.toRoute<Route.QuranReader>()
+    QuranReaderScreen(
+        surahNumber = args.surahNumber,
+        initialAyahNumber = args.ayahNumber,
+        onNavigateBack = { navController.popBackStack() },
+        onNavigateToTafseer = { surah, ayah ->
+            navController.navigate(Route.Tafseer(surah, ayah))
+        }
+    )
+}
+```
+
+### Settings feature
+
+```kotlin
+composable<Route.Settings> {
+    SettingsScreen(
+        onNavigateBack = { navController.popBackStack() },
+        onNavigateToPrayerSettings = { 
+            navController.navigate(Route.SettingsPrayerCalculation)
+        },
+        onNavigateToNotifications = { 
+            navController.navigate(Route.SettingsNotifications)
+        },
+        onNavigateToAppearance = { 
+            navController.navigate(Route.SettingsAppearance)
+        }
+    )
+}
+```
+
+## Deep linking
+
+Handle intents from notifications:
+
+```kotlin MainActivity.kt
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    
+    // Handle prayer notification tap
+    handleIntent(intent)
+}
+
+override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    handleIntent(intent)
+}
+
+private fun handleIntent(intent: Intent?) {
+    if (intent?.getBooleanExtra(EXTRA_STOP_ADHAN, false) == true) {
+        // Stop adhan playback
+        AdhanPlaybackService.stopAdhan(this)
+    }
+}
+```
+
+## App restart
+
+Restart the app after settings changes:
+
+```kotlin core/navigation/NavGraph.kt
+private fun restartApp(context: Context) {
+    val intent = context.packageManager
+        .getLaunchIntentForPackage(context.packageName)
+    intent?.addFlags(
+        Intent.FLAG_ACTIVITY_CLEAR_TOP or 
+        Intent.FLAG_ACTIVITY_CLEAR_TASK or 
+        Intent.FLAG_ACTIVITY_NEW_TASK
+    )
+    context.startActivity(intent)
+    if (context is Activity) {
+        context.finish()
+    }
+    exitProcess(0)
+}
+
+// Usage in settings screen
+composable<Route.Settings> {
+    val context = LocalContext.current
+    SettingsScreen(
+        onRestartApp = { restartApp(context) }
+    )
+}
+```
+
+## Navigation from ViewModels
+
+ViewModels should not directly navigate. Instead, emit events:
+
+```kotlin
+// ViewModel
+class QuranViewModel : ViewModel() {
+    private val _navigationEvent = MutableSharedFlow<NavigationEvent>()
+    val navigationEvent = _navigationEvent.asSharedFlow()
+    
+    fun onSurahClick(surahNumber: Int) {
+        viewModelScope.launch {
+            _navigationEvent.emit(NavigationEvent.NavigateToSurah(surahNumber))
+        }
+    }
+}
+
+// Screen
+@Composable
+fun QuranScreen(
+    onNavigateToSurah: (Int) -> Unit,
+    viewModel: QuranViewModel = hiltViewModel()
+) {
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is NavigationEvent.NavigateToSurah -> {
+                    onNavigateToSurah(event.surahNumber)
+                }
+            }
+        }
+    }
+}
+```
+
+## Related
+
+- [Compose screens](/development/ui/compose-screens) - Screen organization
+- [Components](/development/ui/components) - UI components
+- [Theming](/development/ui/theming) - Theme system

@@ -1,0 +1,185 @@
+---
+title: Prayer times
+description: Accurate prayer time calculations with multiple methods and customizable notifications
+---
+
+Nimaz provides accurate prayer times based on your location, with support for multiple calculation methods and customizable notifications to help you never miss a prayer.
+
+## Calculation methods
+
+Nimaz supports 11 internationally recognized calculation methods to ensure accurate prayer times for your region:
+
+<CardGroup cols={2}>
+  <Card title="Muslim World League" icon="globe">
+    Default method used globally
+  </Card>
+  <Card title="Egyptian General Authority" icon="flag">
+    For Egypt and surrounding regions
+  </Card>
+  <Card title="University of Islamic Sciences, Karachi" icon="university">
+    For Pakistan and South Asia
+  </Card>
+  <Card title="Umm Al-Qura University, Makkah" icon="kaaba">
+    For Saudi Arabia
+  </Card>
+  <Card title="Islamic Society of North America" icon="map-location-dot">
+    For USA and Canada
+  </Card>
+  <Card title="Moon Sighting Committee" icon="moon">
+    For accurate sighting-based times
+  </Card>
+  <Card title="Dubai" icon="building">
+    For UAE regions
+  </Card>
+  <Card title="Kuwait" icon="mosque">
+    For Kuwait region
+  </Card>
+  <Card title="Qatar" icon="mosque">
+    For Qatar region
+  </Card>
+  <Card title="Singapore" icon="map-pin">
+    For Singapore region
+  </Card>
+  <Card title="Diyanet, Turkey" icon="flag">
+    For Turkey region
+  </Card>
+</CardGroup>
+
+## Asr calculation methods
+
+Choose between two schools of jurisprudence for Asr prayer timing:
+
+<Tabs>
+  <Tab title="Standard (Shafi'i)">
+    Used by Shafi'i, Maliki, and Hanbali schools. Shadow length = object length.
+  </Tab>
+  <Tab title="Hanafi">
+    Used by Hanafi school. Shadow length = 2 × object length.
+  </Tab>
+</Tabs>
+
+## High latitude adjustments
+
+For regions with extreme latitudes where twilight persists, Nimaz offers three adjustment methods:
+
+<Steps>
+  <Step title="Middle of the night">
+    Calculates Fajr and Isha based on the middle point between sunset and sunrise
+  </Step>
+  <Step title="Seventh of the night">
+    Uses 1/7th of the night duration for twilight calculation
+  </Step>
+  <Step title="Twilight angle">
+    Adjusts the angle used for twilight calculations
+  </Step>
+</Steps>
+
+## Prayer time notifications
+
+### Notification types
+
+Nimaz provides two types of notifications to keep you informed:
+
+<AccordionGroup>
+  <Accordion title="Prayer time notifications">
+    Alerts you when it's time for each prayer. Includes:
+    - Prayer name and time
+    - Islamic reminder or hadith
+    - Quick action to mark prayer as prayed
+    - Option to play Adhan
+  </Accordion>
+  <Accordion title="Pre-prayer reminders">
+    Advance notice before prayer time arrives. Configure reminder time from 5 to 60 minutes before each prayer.
+  </Accordion>
+</AccordionGroup>
+
+### Configuring notifications
+
+<Steps>
+  <Step title="Enable notifications">
+    Grant notification permission when prompted during onboarding or in app settings
+  </Step>
+  <Step title="Select prayers">
+    Choose which prayers should trigger notifications (Fajr, Dhuhr, Asr, Maghrib, Isha)
+  </Step>
+  <Step title="Set pre-reminders">
+    Optionally enable pre-prayer reminders and set the advance notice time
+  </Step>
+  <Step title="Choose Adhan sound">
+    Select from multiple Adhan recitations or use silent notifications
+  </Step>
+</Steps>
+
+<Note>
+  Sunrise is shown for reference but doesn't trigger notifications by default, as it's not a prayer time.
+</Note>
+
+## Daily summary
+
+Receive a nightly summary at 11:00 PM showing:
+- Number of prayers completed
+- Number of prayers missed
+- Completion percentage for the day
+- Encouragement to maintain consistency
+
+## Location management
+
+Nimaz calculates prayer times based on your GPS coordinates:
+
+<CardGroup cols={2}>
+  <Card title="Current location" icon="location-dot">
+    Automatically detect using device GPS
+  </Card>
+  <Card title="Saved locations" icon="bookmark">
+    Save frequently used locations (home, work, etc.)
+  </Card>
+  <Card title="Manual coordinates" icon="map-pin">
+    Enter latitude/longitude manually
+  </Card>
+  <Card title="City search" icon="magnifying-glass">
+    Search for locations by city name
+  </Card>
+</CardGroup>
+
+## Time adjustments
+
+Fine-tune prayer times to match your local mosque or personal preference:
+
+- Adjust each prayer time by ±30 minutes
+- Adjustments are saved per location
+- Useful for syncing with local masjid schedules
+
+<Info>
+  Time adjustments are applied after the calculation method computes the base prayer times.
+</Info>
+
+## Monthly prayer times
+
+View prayer times for the entire month in a calendar format:
+- See all prayer times at a glance
+- Navigate between months
+- Export or share monthly schedules
+- Compare times across different dates
+
+## Features at a glance
+
+<CardGroup cols={3}>
+  <Card title="Accurate calculations" icon="calculator">
+    Uses Adhan library for precise astronomical calculations
+  </Card>
+  <Card title="Auto-rescheduling" icon="clock-rotate-left">
+    Automatically updates notifications daily at midnight
+  </Card>
+  <Card title="Boot persistence" icon="power-off">
+    Reschedules notifications after device restart
+  </Card>
+  <Card title="Battery optimized" icon="battery-full">
+    Efficient alarm management for minimal battery impact
+  </Card>
+  <Card title="Offline support" icon="wifi-slash">
+    Calculations work without internet connection
+  </Card>
+  <Card title="Timezone aware" icon="earth-americas">
+    Automatically adjusts for your timezone
+  </Card>
+</CardGroup>

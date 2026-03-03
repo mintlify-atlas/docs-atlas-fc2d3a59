@@ -1,0 +1,570 @@
+---
+title: Dependencies
+description: Key libraries, versions, and their usage in the Nimaz application
+---
+
+Nimaz leverages modern Android libraries to provide a robust and feature-rich Islamic companion app. This page documents the major dependencies, their purposes, and how they're used.
+
+## Dependency management
+
+All dependencies are managed through Gradle's version catalog located at `gradle/libs.versions.toml`. This centralizes version management and makes updates easier.
+
+```kotlin
+// In build.gradle.kts
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+}
+```
+
+<Info>
+Kotlin Symbol Processing (KSP) is used instead of kapt for faster annotation processing with Hilt and Room.
+</Info>
+
+## Core Android libraries
+
+### AndroidX Core
+
+Provides core functionality and Kotlin extensions:
+
+```toml
+[versions]
+coreKtx = "1.17.0"
+lifecycleRuntimeKtx = "2.10.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+```
+
+**Usage:**
+- Core KTX extensions for Android framework APIs
+- Lifecycle-aware components (ViewModels, LiveData)
+- Compose lifecycle integration
+
+## Jetpack Compose
+
+Modern declarative UI toolkit for building native Android interfaces:
+
+```toml
+[versions]
+activityCompose = "1.12.2"
+composeBom = "2026.01.00"
+
+[libraries]
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+```
+
+**Key features used:**
+- Material3 design components
+- Extended icon set for Islamic symbols
+- State management with `remember` and `derivedStateOf`
+- Side effects with `LaunchedEffect` and `DisposableEffect`
+
+<Accordion title="Why Material3?">
+Material3 provides dynamic color theming, improved accessibility, and modern design patterns. Nimaz uses Material3's color system to adapt to user preferences and system themes.
+</Accordion>
+
+### Navigation Compose
+
+```toml
+[versions]
+navigationCompose = "2.9.6"
+
+[libraries]
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+```
+
+**Usage:**
+- Type-safe navigation between screens
+- Deep linking support
+- Navigation arguments passing
+- Back stack management
+
+## Dependency injection
+
+### Hilt
+
+Dagger-based dependency injection optimized for Android:
+
+```toml
+[versions]
+hilt = "2.57.1"
+hiltNavigationCompose = "1.3.0"
+
+[libraries]
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+
+[plugins]
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+```
+
+**Key annotations used:**
+- `@HiltAndroidApp` - Application class
+- `@HiltViewModel` - ViewModels
+- `@Inject` - Constructor injection
+- `@Module` / `@InstallIn` - Dependency providers
+- `@Binds` - Interface to implementation binding
+
+**Example:**
+```kotlin
+@HiltViewModel
+class QuranViewModel @Inject constructor(
+    private val quranUseCases: QuranUseCases,
+    private val preferencesDataStore: PreferencesDataStore
+) : ViewModel() { ... }
+```
+
+## Data persistence
+
+### Room
+
+SQLite abstraction layer for robust database access:
+
+```toml
+[versions]
+room = "2.8.4"
+
+[libraries]
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+```
+
+**Features used:**
+- 30+ entities for Quran, Hadith, Dua, prayers, etc.
+- DAOs with suspend functions and Flow queries
+- Database migrations for schema changes
+- Foreign key constraints and indices
+- Full-text search (FTS) for Quran search
+
+**Configuration:**
+```kotlin
+defaultConfig {
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+}
+```
+
+### DataStore
+
+Modern replacement for SharedPreferences:
+
+```toml
+[versions]
+datastore = "1.2.0"
+
+[libraries]
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+```
+
+**Usage:**
+- User preferences (theme, language, notification settings)
+- Prayer notification toggles
+- App settings
+- Type-safe with Kotlin Flow
+
+<Accordion title="Room vs DataStore">
+**Room** is used for structured data (Quran verses, prayers, bookmarks) that needs complex queries.
+
+**DataStore** is used for simple key-value preferences (settings, user choices).
+</Accordion>
+
+## Asynchronous programming
+
+### Kotlin Coroutines
+
+```toml
+[versions]
+coroutines = "1.10.2"
+
+[libraries]
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+```
+
+**Usage throughout app:**
+- `viewModelScope` for ViewModel operations
+- `Flow` for reactive data streams
+- `suspend` functions for async operations
+- `StateFlow` for UI state management
+
+### Kotlin Serialization
+
+```toml
+[versions]
+serialization = "1.10.0"
+
+[libraries]
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+
+[plugins]
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+```
+
+**Usage:**
+- JSON parsing for data files in `res/raw/`
+- Navigation arguments
+- Data class serialization
+
+## Islamic functionality
+
+### Adhan
+
+Accurate Islamic prayer time calculations:
+
+```toml
+[versions]
+adhan = "0.0.6"
+
+[libraries]
+adhan = { group = "com.batoulapps.adhan", name = "adhan2", version.ref = "adhan" }
+```
+
+**Features:**
+- Multiple calculation methods (MWL, ISNA, Umm al-Qura, etc.)
+- High-precision prayer times based on coordinates
+- Qibla direction calculation
+- Supports different madhabs for Asr time
+
+**Example:**
+```kotlin
+val coordinates = Coordinates(latitude, longitude)
+val params = CalculationMethod.MUSLIM_WORLD_LEAGUE.parameters
+val prayerTimes = PrayerTimes(coordinates, date, params)
+```
+
+### DateTime
+
+```toml
+[versions]
+datetime = "0.7.1"
+
+[libraries]
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
+```
+
+**Usage:**
+- Hijri calendar calculations
+- Prayer time scheduling
+- Fasting period tracking
+- Date comparisons and formatting
+
+## Background work
+
+### WorkManager
+
+```toml
+[versions]
+workManager = "2.11.0"
+
+[libraries]
+work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltNavigationCompose" }
+hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltNavigationCompose" }
+```
+
+**Usage:**
+- Scheduling prayer notifications
+- Updating widgets periodically
+- Background data synchronization
+- Adhan audio downloads
+
+**Example:**
+```kotlin
+val workRequest = PeriodicWorkRequestBuilder<PrayerNotificationWorker>(
+    repeatInterval = 1, TimeUnit.DAYS
+).setConstraints(
+    Constraints.Builder()
+        .setRequiresBatteryNotLow(true)
+        .build()
+).build()
+
+WorkManager.getInstance(context).enqueue(workRequest)
+```
+
+## Widgets
+
+### Glance
+
+Jetpack Compose for app widgets:
+
+```toml
+[versions]
+glance = "1.2.0-rc01"
+
+[libraries]
+glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+```
+
+**Widgets implemented:**
+- Next prayer time widget
+- All prayer times widget
+- Prayer tracker widget
+- Hijri date widget
+- Hijri calendar widget
+
+<Info>
+Glance allows writing widgets with Compose-like syntax while generating RemoteViews under the hood for compatibility.
+</Info>
+
+## Media playback
+
+### Media3 ExoPlayer
+
+```toml
+[versions]
+media3 = "1.9.0"
+
+[libraries]
+media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
+media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
+```
+
+**Usage:**
+- Playing Adhan audio for prayer notifications
+- Dua audio playback with controls
+- Background audio support
+- Media session for lock screen controls
+
+## Google Play Services
+
+### Location Services
+
+```toml
+[versions]
+playServicesLocation = "21.3.0"
+
+[libraries]
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+```
+
+**Usage:**
+- Requesting user location for prayer times
+- GPS-based Qibla direction
+- Location permission handling
+- FusedLocationProviderClient for battery-efficient location
+
+### In-App Updates
+
+```toml
+[versions]
+playAppUpdate = "2.1.0"
+
+[libraries]
+play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
+play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
+```
+
+**Usage:**
+- Prompting users for flexible updates
+- Immediate updates for critical releases
+
+### In-App Review
+
+```toml
+[versions]
+review = "2.0.2"
+
+[libraries]
+app-review = { group = "com.google.android.play", name = "review", version.ref = "review" }
+app-review-ktx = { group = "com.google.android.play", name = "review-ktx", version.ref = "review" }
+```
+
+**Usage:**
+- Requesting user ratings within the app
+- Non-intrusive review prompts
+
+## Camera
+
+### CameraX
+
+```toml
+[versions]
+camerax = "1.4.1"
+
+[libraries]
+camerax-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+camerax-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+camerax-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+camerax-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+```
+
+**Usage:**
+- Qibla compass with camera overlay
+- AR-style direction finder
+- Lifecycle-aware camera management
+
+## Other libraries
+
+### AboutLibraries
+
+```toml
+[versions]
+aboutLibs = "11.6.0"
+
+[libraries]
+aboutlibraries-core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutLibs" }
+aboutlibraries-compose-m3 = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutLibs" }
+
+[plugins]
+about-libs-plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibs" }
+```
+
+**Usage:**
+- Automatically generates open source licenses screen
+- Material3 Compose UI
+- Shows all dependencies with their licenses
+
+## Testing dependencies
+
+### Unit testing
+
+```toml
+[versions]
+junit = "4.13.2"
+mockk = "1.14.0"
+turbine = "1.2.0"
+truth = "1.4.2"
+robolectric = "4.11.1"
+
+[libraries]
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+google-truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+```
+
+**Testing stack:**
+- **JUnit4**: Test framework
+- **MockK**: Kotlin-friendly mocking library
+- **Truth**: Fluent assertion library
+- **Turbine**: Flow testing library
+- **Robolectric**: Android framework mocking for unit tests
+
+### Instrumented testing
+
+```toml
+[versions]
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
+
+[libraries]
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
+hilt-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
+room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+```
+
+**Instrumented testing:**
+- **AndroidX Test**: JUnit4 rules for Android
+- **Espresso**: UI testing framework
+- **Compose Test**: Compose UI testing
+- **Hilt Testing**: DI in tests
+- **Room Testing**: Database testing utilities
+
+## Build tools
+
+### Gradle plugins
+
+```toml
+[versions]
+agp = "8.12.0"
+kotlin = "2.3.0"
+ksp = "2.3.4"
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+about-libs-plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibs" }
+```
+
+**Plugin purposes:**
+- **Android Application**: Android app build configuration
+- **Kotlin Android**: Kotlin language support
+- **Kotlin Compose**: Compose compiler
+- **Kotlin Serialization**: JSON serialization
+- **KSP**: Annotation processing (faster than kapt)
+- **Hilt**: Dependency injection code generation
+- **AboutLibraries**: License metadata generation
+
+## Dependency update strategy
+
+<Warning>
+Before updating dependencies:
+1. Check release notes for breaking changes
+2. Test thoroughly, especially for Room migrations
+3. Update one category at a time (Compose, Hilt, etc.)
+4. Run all tests after updates
+</Warning>
+
+### Safe update frequency
+
+<CardGroup cols={2}>
+  <Card title="Patch updates">
+    Update immediately (bug fixes)
+  </Card>
+  <Card title="Minor updates">
+    Update monthly (new features, low risk)
+  </Card>
+  <Card title="Major updates">
+    Plan carefully (breaking changes)
+  </Card>
+  <Card title="BOM updates">
+    Update with Compose releases
+  </Card>
+</CardGroup>
+
+## ProGuard configuration
+
+Nimaz uses R8/ProGuard for code shrinking in release builds:
+
+```kotlin
+buildTypes {
+    release {
+        isMinifyEnabled = true
+        isShrinkResources = true
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro"
+        )
+    }
+}
+```
+
+Most libraries include consumer ProGuard rules automatically, but custom rules may be needed for:
+- Serialization classes
+- Database entities
+- Classes accessed via reflection
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" href="/development/architecture">
+    See how these libraries fit into the architecture
+  </Card>
+  <Card title="Project structure" href="/development/project-structure">
+    Navigate the codebase efficiently
+  </Card>
+</CardGroup>

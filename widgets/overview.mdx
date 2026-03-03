@@ -1,0 +1,214 @@
+---
+title: Widget system overview
+description: Learn about Nimaz's Android home screen widgets and how they integrate with the prayer tracking system
+---
+
+Nimaz provides a collection of home screen widgets that give users quick access to prayer times, Hijri dates, and prayer tracking directly from their Android home screen. All widgets are built using Jetpack Glance, Google's modern widget framework.
+
+## Available widgets
+
+Nimaz includes four main widgets:
+
+<CardGroup cols={2}>
+  <Card title="Prayer times widget" icon="clock" href="/widgets/prayer-times-widget">
+    Display all five daily prayer times with countdown to next prayer
+  </Card>
+  <Card title="Next prayer widget" icon="bell" href="/widgets/next-prayer-widget">
+    Show the upcoming prayer time with live countdown
+  </Card>
+  <Card title="Hijri date widget" icon="calendar" href="/widgets/hijri-date-widget">
+    Display today's Hijri date with Gregorian date reference
+  </Card>
+  <Card title="Prayer tracker widget" icon="check" href="/widgets/prayer-tracker-widget">
+    Interactive widget to track completed prayers for the day
+  </Card>
+</CardGroup>
+
+## Widget architecture
+
+All widgets follow a consistent architecture pattern:
+
+### Jetpack Glance framework
+
+Widgets are built using [Jetpack Glance](https://developer.android.com/jetpack/compose/glance), which provides:
+
+- Composable UI similar to Jetpack Compose
+- State management for widget data
+- Automatic updates and refresh mechanisms
+- Support for dynamic theming and styling
+
+### Component structure
+
+Each widget consists of these core components:
+
+<Steps>
+  <Step title="Widget class">
+    Extends `GlanceAppWidget` and defines the UI composable. Located at `widget/{name}/{Name}Widget.kt`.
+  </Step>
+  
+  <Step title="Widget receiver">
+    Extends `GlanceAppWidgetReceiver` and handles Android system callbacks. Registered in `AndroidManifest.xml`.
+  </Step>
+  
+  <Step title="State definition">
+    Defines how widget state is stored and retrieved using `GlanceStateDefinition`.
+  </Step>
+  
+  <Step title="Worker">
+    Background `Worker` that fetches data and updates widget state periodically.
+  </Step>
+</Steps>
+
+### State management
+
+Widgets use a sealed interface pattern for state:
+
+```kotlin
+sealed interface WidgetState {
+    data object Loading : WidgetState
+    data class Success(val data: WidgetData) : WidgetState
+    data class Error(val message: String?) : WidgetState
+}
+```
+
+This provides clear loading, success, and error states for a better user experience.
+
+## Widget update mechanism
+
+### Periodic updates
+
+Widgets use WorkManager for periodic data updates:
+
+- Default interval: 15 minutes (minimum allowed by WorkManager)
+- Triggered on widget enable, system boot, and data changes
+- Battery-efficient with system job scheduling
+
+### Live countdown updates
+
+For widgets with countdown timers (Prayer Times and Next Prayer), a special update mechanism provides minute-by-minute updates:
+
+```kotlin
+object WidgetUpdateScheduler {
+    private const val INTERVAL_MS = 60_000L // 1 minute
+    
+    fun schedule(context: Context) {
+        // Uses AlarmManager for per-minute updates
+        alarmManager.setInexactRepeating(
+            AlarmManager.ELAPSED_REALTIME,
+            SystemClock.elapsedRealtime() + INTERVAL_MS,
+            INTERVAL_MS,
+            pendingIntent
+        )
+    }
+}
+```
+
+<Note>
+The countdown update mechanism uses `setInexactRepeating()` for battery efficiency. This means updates may be slightly delayed but will be close to every minute.
+</Note>
+
+See `WidgetUpdateScheduler.kt` at widget/WidgetUpdateScheduler.kt:20 for the full implementation.
+
+## Adding widgets to your home screen
+
+Users can add widgets through the standard Android widget picker:
+
+<Steps>
+  <Step title="Open widget picker">
+    Long-press on the home screen and select "Widgets" from the menu.
+  </Step>
+  
+  <Step title="Find Nimaz widgets">
+    Scroll to find the Nimaz app section in the widget list.
+  </Step>
+  
+  <Step title="Select and place">
+    Drag the desired widget to your home screen. Some widgets support multiple sizes.
+  </Step>
+  
+  <Step title="Initial setup">
+    If prayer times aren't configured, tap the widget to open the app and complete setup.
+  </Step>
+</Steps>
+
+## Widget configuration
+
+Widgets automatically reflect your app settings:
+
+- **Location**: Uses your configured location for prayer time calculations
+- **Calculation method**: Respects your chosen calculation method
+- **Time format**: Displays times in 12-hour or 24-hour format based on app settings
+- **Hijri date adjustment**: Applies any Hijri date adjustments you've configured
+
+<Note>
+Widgets inherit all settings from the main app. Changes to location, calculation method, or other settings will automatically reflect in widgets after their next update cycle.
+</Note>
+
+## Theming and colors
+
+Widgets use Material You dynamic theming where available:
+
+- Background: `R.color.widget_background`
+- Primary text: `R.color.widget_text`
+- Secondary text: `R.color.widget_text_secondary`
+- Accent color: `R.color.widget_primary`
+
+On Android 12+, these colors adapt to the user's system wallpaper and theme.
+
+## Data sources
+
+Widgets fetch data from the app's local database:
+
+- **Prayer times**: Calculated times stored in Room database
+- **Prayer records**: User's prayer completion status
+- **Hijri dates**: Calculated dates with user adjustments
+
+All widgets use the `WidgetEntryPoint` Hilt entry point to access DAOs:
+
+```kotlin
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WidgetEntryPoint {
+    fun prayerDao(): PrayerDao
+}
+```
+
+See widget/WidgetEntryPoint.kt:8 for the entry point definition.
+
+## Troubleshooting
+
+### Widget shows "Tap to setup"
+
+This appears when:
+- Prayer times haven't been calculated yet
+- Location permission not granted
+- No location configured in the app
+
+**Solution**: Open the app and complete the initial setup.
+
+### Widget not updating
+
+Possible causes:
+- Battery optimization restricting background work
+- App data cleared
+- System killing background processes
+
+**Solution**: Disable battery optimization for Nimaz or tap the widget to force a refresh.
+
+### Countdown showing wrong time
+
+This can happen if:
+- System time zone changed
+- Device date/time is incorrect
+- Prayer times need recalculation
+
+**Solution**: Open the app to trigger a full prayer time recalculation.
+
+## Next steps
+
+Explore the individual widget documentation:
+
+- [Prayer times widget](/widgets/prayer-times-widget) - Comprehensive daily prayer schedule
+- [Next prayer widget](/widgets/next-prayer-widget) - Quick glance at upcoming prayer
+- [Hijri date widget](/widgets/hijri-date-widget) - Islamic calendar on your home screen
+- [Prayer tracker widget](/widgets/prayer-tracker-widget) - Interactive prayer completion tracking

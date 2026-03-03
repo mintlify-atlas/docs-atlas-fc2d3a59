@@ -1,0 +1,409 @@
+---
+title: Repository interfaces
+description: Domain layer repository interfaces defining data access contracts
+---
+
+Repository interfaces define the contract between the domain layer and data layer. They specify what data operations are available without exposing implementation details. All repositories return `Flow` for reactive data streams or suspend functions for one-time operations.
+
+## QuranRepository
+
+Provides access to Quran data including surahs, ayahs, translations, bookmarks, and reading progress.
+
+<Accordion title="View interface definition">
+```kotlin
+interface QuranRepository {
+    // Surah operations
+    fun getAllSurahs(): Flow<List<Surah>>
+    suspend fun getSurahByNumber(surahNumber: Int): Surah?
+    fun getSurahsByRevelationType(type: RevelationType): Flow<List<Surah>>
+    fun searchSurahs(query: String): Flow<List<Surah>>
+
+    // Ayah operations
+    fun getAyahsBySurah(surahNumber: Int): Flow<List<Ayah>>
+    suspend fun getAyahById(ayahId: Int): Ayah?
+    fun getAyahsByJuz(juzNumber: Int, translatorId: String? = null): Flow<List<Ayah>>
+    fun getAyahsByPage(pageNumber: Int, translatorId: String? = null): Flow<List<Ayah>>
+    fun getSajdaAyahs(): Flow<List<Ayah>>
+
+    // Surah with Ayahs
+    fun getSurahWithAyahs(surahNumber: Int, translatorId: String?): Flow<SurahWithAyahs?>
+
+    // Translation operations
+    suspend fun getAvailableTranslators(): List<Translator>
+    fun getTranslationsForAyahs(ayahIds: List<Int>, translatorId: String): Flow<Map<Int, String>>
+
+    // Search operations
+    fun searchQuran(query: String, translatorId: String?): Flow<List<QuranSearchResult>>
+
+    // Bookmark operations
+    fun getAllBookmarks(): Flow<List<QuranBookmark>>
+    suspend fun getBookmarkByAyahId(ayahId: Int): QuranBookmark?
+    fun isAyahBookmarked(ayahId: Int): Flow<Boolean>
+    suspend fun toggleBookmark(ayahId: Int, surahNumber: Int, ayahNumber: Int)
+    suspend fun addBookmark(ayahId: Int, surahNumber: Int, ayahNumber: Int, note: String?, color: String?)
+    suspend fun updateBookmark(bookmark: QuranBookmark)
+    suspend fun deleteBookmark(ayahId: Int)
+
+    // Favorite operations
+    fun getAllFavorites(): Flow<List<QuranFavorite>>
+    fun getFavoriteAyahIds(): Flow<List<Int>>
+    suspend fun toggleFavorite(ayahId: Int, surahNumber: Int, ayahNumber: Int)
+
+    // Reading progress
+    fun getReadingProgress(): Flow<ReadingProgress?>
+    suspend fun updateReadingPosition(surah: Int, ayah: Int, page: Int, juz: Int)
+    suspend fun incrementAyahsRead(count: Int)
+
+    // Data initialization
+    suspend fun initializeQuranData()
+    suspend fun isDataInitialized(): Boolean
+}
+```
+</Accordion>
+
+### Key operations
+
+**Navigation modes**: Supports browsing by surah, juz, or page with optional translations.
+
+**Search**: Full-text search across Arabic text and translations.
+
+**Bookmarks and favorites**: Users can bookmark ayahs with notes and colors, or mark them as favorites.
+
+**Reading progress**: Tracks the last read position and total ayahs read for khatam tracking.
+
+## PrayerRepository
+
+Manages prayer times calculation, prayer tracking records, and location-based settings.
+
+<Accordion title="View interface definition">
+```kotlin
+interface PrayerRepository {
+    // Today's prayer records — shared flow for cross-screen sync
+    fun getTodayPrayerRecords(): Flow<Map<PrayerName, PrayerStatus>>
+
+    // Prayer times calculation
+    fun getPrayerTimesForDate(date: LocalDate, location: Location): PrayerTimes
+    fun getPrayerTimesForRange(startDate: LocalDate, endDate: LocalDate, location: Location): List<PrayerTimes>
+
+    // Prayer records
+    fun getPrayerRecordsForDate(date: Long): Flow<List<PrayerRecord>>
+    fun getPrayerRecordsInRange(startDate: Long, endDate: Long): Flow<List<PrayerRecord>>
+    suspend fun getPrayerRecord(date: Long, prayerName: PrayerName): PrayerRecord?
+    fun getPrayerRecordsByStatus(status: PrayerStatus): Flow<List<PrayerRecord>>
+    fun getMissedPrayersRequiringQada(): Flow<List<PrayerRecord>>
+
+    // Prayer record operations
+    suspend fun insertPrayerRecord(record: PrayerRecord)
+    suspend fun insertPrayerRecords(records: List<PrayerRecord>)
+    suspend fun updatePrayerStatus(
+        date: Long,
+        prayerName: PrayerName,
+        status: PrayerStatus,
+        prayedAt: Long?,
+        isJamaah: Boolean
+    )
+
+    // Statistics
+    suspend fun getPrayerStats(startDate: Long, endDate: Long): PrayerStats
+    suspend fun getCurrentStreak(currentDate: Long): Int
+    suspend fun getLongestStreak(): Int
+    suspend fun markPastPrayersAsMissed(): Int
+
+    // Location operations
+    fun getAllLocations(): Flow<List<Location>>
+    fun getCurrentLocation(): Flow<Location?>
+    suspend fun getCurrentLocationSync(): Location?
+    fun getFavoriteLocations(): Flow<List<Location>>
+    suspend fun getLocationById(id: Long): Location?
+    fun searchLocations(query: String): Flow<List<Location>>
+    suspend fun insertLocation(location: Location): Long
+    suspend fun updateLocation(location: Location)
+    suspend fun deleteLocation(location: Location)
+    suspend fun setCurrentLocation(id: Long)
+    suspend fun toggleFavorite(id: Long)
+}
+```
+</Accordion>
+
+### Key operations
+
+**Prayer times**: Calculates times based on location using various calculation methods (MWL, ISNA, etc.).
+
+**Prayer tracking**: Records prayer status (prayed, missed, qada) with timestamps and congregation tracking.
+
+**Statistics**: Provides streak tracking, prayer counts by type, and perfect day counts.
+
+**Location management**: Stores multiple locations with custom calculation settings.
+
+## HadithRepository
+
+Provides access to hadith collections, books, chapters, and individual hadiths.
+
+<Accordion title="View interface definition">
+```kotlin
+interface HadithRepository {
+    // Hadith of the day
+    suspend fun getHadithOfTheDay(): Hadith?
+
+    // Book operations
+    fun getAllBooks(): Flow<List<HadithBook>>
+    suspend fun getBookById(bookId: String): HadithBook?
+
+    // Chapter operations
+    fun getChaptersByBook(bookId: String): Flow<List<HadithChapter>>
+    suspend fun getChapterById(chapterId: String): HadithChapter?
+    fun searchChapters(bookId: String, query: String): Flow<List<HadithChapter>>
+
+    // Hadith operations
+    fun getHadithsByChapter(chapterId: String): Flow<List<Hadith>>
+    fun getHadithsByBook(bookId: String): Flow<List<Hadith>>
+    suspend fun getHadithById(hadithId: String): Hadith?
+    suspend fun getHadithByNumber(bookId: String, hadithNumber: Int): Hadith?
+    fun getHadithsByGrade(grade: HadithGrade): Flow<List<Hadith>>
+
+    // Search operations
+    fun searchHadiths(query: String): Flow<List<HadithSearchResult>>
+    fun searchHadithsInBook(bookId: String, query: String): Flow<List<HadithSearchResult>>
+
+    // Bookmark operations
+    fun getAllBookmarks(): Flow<List<HadithBookmark>>
+    fun getBookmarksByBook(bookId: String): Flow<List<HadithBookmark>>
+    suspend fun getBookmarkByHadithId(hadithId: String): HadithBookmark?
+    fun isHadithBookmarked(hadithId: String): Flow<Boolean>
+    suspend fun toggleBookmark(hadithId: String, bookId: String, hadithNumber: Int)
+    suspend fun updateBookmark(bookmark: HadithBookmark)
+    suspend fun deleteBookmark(hadithId: String)
+
+    // Data initialization
+    suspend fun initializeHadithData()
+    suspend fun isDataInitialized(): Boolean
+}
+```
+</Accordion>
+
+### Key operations
+
+**Hierarchical browsing**: Navigate from books to chapters to individual hadiths.
+
+**Search**: Full-text search across hadith text in Arabic and English.
+
+**Grading**: Filter hadiths by authenticity grade (Sahih, Hasan, Daif, etc.).
+
+**Hadith of the day**: Provides a daily hadith feature.
+
+## DuaRepository
+
+Manages duas (supplications) organized by categories and occasions.
+
+<Accordion title="View interface definition">
+```kotlin
+interface DuaRepository {
+    // Category operations
+    fun getAllCategories(): Flow<List<DuaCategory>>
+    suspend fun getCategoryById(categoryId: String): DuaCategory?
+
+    // Dua operations
+    fun getDuasByCategory(categoryId: String): Flow<List<Dua>>
+    suspend fun getDuaById(duaId: String): Dua?
+    fun getDuasByOccasion(occasion: DuaOccasion): Flow<List<Dua>>
+
+    // Search operations
+    fun searchDuas(query: String): Flow<List<DuaSearchResult>>
+
+    // Bookmark operations
+    fun getAllBookmarks(): Flow<List<DuaBookmark>>
+    fun getFavoriteDuas(): Flow<List<DuaBookmark>>
+    suspend fun getBookmarkByDuaId(duaId: String): DuaBookmark?
+    fun isDuaBookmarked(duaId: String): Flow<Boolean>
+    fun isDuaFavorite(duaId: String): Flow<Boolean>
+    suspend fun toggleFavorite(duaId: String, categoryId: String)
+    suspend fun updateBookmark(bookmark: DuaBookmark)
+    suspend fun deleteBookmark(duaId: String)
+
+    // Progress operations
+    suspend fun getProgressForDuaOnDate(duaId: String, date: Long): DuaProgress?
+    fun getProgressForDate(date: Long): Flow<List<DuaProgress>>
+    fun getProgressHistoryForDua(duaId: String): Flow<List<DuaProgress>>
+    suspend fun incrementDuaProgress(duaId: String, date: Long, targetCount: Int)
+    suspend fun decrementDuaProgress(duaId: String, date: Long)
+
+    // Data initialization
+    suspend fun initializeDuaData()
+    suspend fun isDataInitialized(): Boolean
+}
+```
+</Accordion>
+
+### Key operations
+
+**Category browsing**: Duas organized by categories with icons and descriptions.
+
+**Occasion-based**: Filter duas by time or situation (morning, evening, before sleep, etc.).
+
+**Progress tracking**: Track daily completion of duas with repeat counts.
+
+**Favorites**: Mark frequently used duas for quick access.
+
+## KhatamRepository
+
+Manages Quran completion goals and reading progress tracking.
+
+<Accordion title="View interface definition">
+```kotlin
+interface KhatamRepository {
+    // Khatam CRUD
+    suspend fun createKhatam(khatam: Khatam): Long
+    suspend fun getActiveKhatam(): Khatam?
+    fun observeActiveKhatam(): Flow<Khatam?>
+    suspend fun setActiveKhatam(khatamId: Long)
+    
+    // Progress tracking
+    suspend fun markAyahsRead(khatamId: Long, ayahIds: List<Int>)
+    suspend fun getReadAyahIds(khatamId: Long): Set<Int>
+    fun observeReadAyahIds(khatamId: Long): Flow<Set<Int>>
+    suspend fun getJuzProgress(khatamId: Long): List<JuzProgressInfo>
+    fun observeDailyLogs(khatamId: Long): Flow<List<DailyLogEntry>>
+    
+    // Status updates
+    suspend fun completeKhatam(khatamId: Long)
+    suspend fun abandonKhatam(khatamId: Long)
+    suspend fun reactivateKhatam(khatamId: Long)
+    suspend fun deleteKhatam(khatamId: Long)
+    
+    // Statistics
+    suspend fun getKhatamStats(): KhatamStats
+    suspend fun getNextUnreadPosition(khatamId: Long): Pair<Int, Int>?
+}
+```
+</Accordion>
+
+### Key operations
+
+**Active tracking**: One khatam can be active at a time for focused tracking.
+
+**Granular progress**: Tracks which specific ayahs have been read.
+
+**Juz visualization**: Shows progress across all 30 juz.
+
+**Daily logs**: Records daily reading counts for streak and pace calculation.
+
+## FastingRepository
+
+Tracks Ramadan fasting, voluntary fasts, and makeup fasts.
+
+<Accordion title="View interface definition">
+```kotlin
+interface FastingRepository {
+    // Fast records
+    fun getFastRecordsForDateRange(startDate: Long, endDate: Long): Flow<List<FastRecord>>
+    suspend fun getFastRecord(date: Long): FastRecord?
+    suspend fun insertFastRecord(record: FastRecord)
+    suspend fun updateFastRecord(record: FastRecord)
+    suspend fun deleteFastRecord(date: Long)
+    
+    // Makeup fasts
+    fun getMakeupFasts(): Flow<List<MakeupFast>>
+    fun getPendingMakeupFasts(): Flow<List<MakeupFast>>
+    suspend fun insertMakeupFast(makeupFast: MakeupFast)
+    suspend fun completeMakeupFast(id: Long, completedDate: Long)
+    
+    // Statistics
+    suspend fun getFastingStats(startDate: Long, endDate: Long): FastingStats
+    suspend fun getRamadanProgress(year: Int): RamadanProgress
+}
+```
+</Accordion>
+
+### Key operations
+
+**Daily tracking**: Records fasting status with suhoor and iftar times.
+
+**Exemptions**: Tracks reasons for not fasting (travel, illness, etc.).
+
+**Makeup tracking**: Manages makeup fasts with status and fidya tracking.
+
+**Ramadan overview**: Special progress view for Ramadan month.
+
+## ZakatRepository
+
+Calculates and tracks zakat calculations.
+
+<Accordion title="View interface definition">
+```kotlin
+interface ZakatRepository {
+    // Calculations
+    suspend fun saveCalculation(calculation: ZakatCalculation): Long
+    fun getCalculationHistory(): Flow<List<ZakatCalculation>>
+    suspend fun getLatestCalculation(): ZakatCalculation?
+    
+    // Metal prices
+    suspend fun getCurrentMetalPrices(): Pair<MetalPrice, MetalPrice> // Gold, Silver
+    suspend fun updateMetalPrice(metalPrice: MetalPrice)
+}
+```
+</Accordion>
+
+### Key operations
+
+**Calculation**: Computes zakat based on assets, liabilities, and nisab threshold.
+
+**History**: Stores past calculations for reference.
+
+**Metal prices**: Tracks current gold and silver prices for nisab calculation.
+
+## TasbihRepository
+
+Manages tasbih presets and counting sessions.
+
+<Accordion title="View interface definition">
+```kotlin
+interface TasbihRepository {
+    // Presets
+    fun getAllPresets(): Flow<List<TasbihPreset>>
+    fun getPresetsByCategory(category: TasbihCategory): Flow<List<TasbihPreset>>
+    suspend fun insertPreset(preset: TasbihPreset): Long
+    suspend fun updatePreset(preset: TasbihPreset)
+    suspend fun deletePreset(id: Long)
+    
+    // Sessions
+    fun getSessionHistory(): Flow<List<TasbihSession>>
+    suspend fun insertSession(session: TasbihSession): Long
+    suspend fun updateSession(session: TasbihSession)
+    
+    // Statistics
+    suspend fun getTasbihStats(startDate: Long, endDate: Long): TasbihStats
+}
+```
+</Accordion>
+
+### Key operations
+
+**Presets**: Predefined dhikr phrases with target counts.
+
+**Sessions**: Tracks individual counting sessions with duration.
+
+**Statistics**: Total counts, completed sessions, and most used presets.
+
+## AsmaUlHusnaRepository
+
+Provides access to the 99 names of Allah.
+
+<Accordion title="View interface definition">
+```kotlin
+interface AsmaUlHusnaRepository {
+    fun getAllNames(): Flow<List<AsmaUlHusna>>
+    suspend fun getNameByNumber(number: Int): AsmaUlHusna?
+    fun getFavoriteNames(): Flow<List<AsmaUlHusna>>
+    suspend fun toggleFavorite(id: Int)
+    fun searchNames(query: String): Flow<List<AsmaUlHusna>>
+}
+```
+</Accordion>
+
+### Key operations
+
+**Complete list**: All 99 names with meanings, explanations, and benefits.
+
+**Search**: Find names by Arabic, transliteration, or meaning.
+
+**Favorites**: Mark frequently referenced names.

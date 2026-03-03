@@ -1,0 +1,728 @@
+---
+title: Domain models
+description: Core data models and enums representing business entities in the Nimaz app
+---
+
+The domain layer contains all the core business models that represent the data structures used throughout the Nimaz application. These models are organized by feature area and include Quran, Prayer, Hadith, Dua, and other Islamic utilities.
+
+## Quran models
+
+Models for Quran reading, navigation, and bookmarking.
+
+### Surah
+
+Represents a chapter of the Quran.
+
+```kotlin
+data class Surah(
+    val number: Int,
+    val nameArabic: String,
+    val nameEnglish: String,
+    val nameTransliteration: String,
+    val revelationType: RevelationType,
+    val ayahCount: Int,
+    val juzStart: Int,
+    val orderInMushaf: Int
+)
+```
+
+<ParamField path="number" type="Int">
+  The surah number (1-114)
+</ParamField>
+
+<ParamField path="nameArabic" type="String">
+  Arabic name of the surah
+</ParamField>
+
+<ParamField path="nameEnglish" type="String">
+  English translation of the surah name
+</ParamField>
+
+<ParamField path="revelationType" type="RevelationType">
+  Whether the surah was revealed in Mecca or Medina
+</ParamField>
+
+### Ayah
+
+Represents a verse of the Quran.
+
+```kotlin
+data class Ayah(
+    val id: Int,
+    val surahNumber: Int,
+    val ayahNumber: Int,
+    val textArabic: String,
+    val textSimple: String,
+    val juzNumber: Int,
+    val hizbNumber: Int,
+    val rubNumber: Int,
+    val pageNumber: Int,
+    val sajdaType: SajdaType?,
+    val sajdaNumber: Int?,
+    val translation: String? = null,
+    val isBookmarked: Boolean = false,
+    val transliteration: String? = null,
+    val textTajweed: String? = null
+)
+```
+
+<ParamField path="id" type="Int">
+  Unique identifier for the ayah
+</ParamField>
+
+<ParamField path="textArabic" type="String">
+  Arabic text of the verse
+</ParamField>
+
+<ParamField path="sajdaType" type="SajdaType?">
+  Indicates if this verse requires prostration (obligatory or recommended)
+</ParamField>
+
+### QuranBookmark
+
+Stores user bookmarks for specific ayahs.
+
+```kotlin
+data class QuranBookmark(
+    val id: Long,
+    val ayahId: Int,
+    val surahNumber: Int,
+    val ayahNumber: Int,
+    val surahName: String? = null,
+    val ayahText: String? = null,
+    val note: String?,
+    val color: String?,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+```
+
+### ReadingProgress
+
+Tracks user's Quran reading progress.
+
+```kotlin
+data class ReadingProgress(
+    val lastReadSurah: Int,
+    val lastReadAyah: Int,
+    val lastReadPage: Int,
+    val lastReadJuz: Int,
+    val totalAyahsRead: Int,
+    val currentKhatmaCount: Int,
+    val updatedAt: Long
+)
+```
+
+### RevelationType
+
+Enumeration for where a surah was revealed.
+
+```kotlin
+enum class RevelationType {
+    MECCAN,
+    MEDINAN
+}
+```
+
+### SajdaType
+
+Enumeration for prostration types in the Quran.
+
+```kotlin
+enum class SajdaType {
+    OBLIGATORY,
+    RECOMMENDED
+}
+```
+
+## Prayer models
+
+Models for prayer times, tracking, and statistics.
+
+### PrayerTimes
+
+Calculated prayer times for a specific date and location.
+
+```kotlin
+data class PrayerTimes(
+    val fajr: LocalDateTime,
+    val sunrise: LocalDateTime,
+    val dhuhr: LocalDateTime,
+    val asr: LocalDateTime,
+    val maghrib: LocalDateTime,
+    val isha: LocalDateTime,
+    val date: LocalDate,
+    val location: Location
+)
+```
+
+### PrayerRecord
+
+Records whether a prayer was prayed, missed, or marked as qada.
+
+```kotlin
+data class PrayerRecord(
+    val id: Long,
+    val date: Long,
+    val prayerName: PrayerName,
+    val status: PrayerStatus,
+    val prayedAt: Long?,
+    val scheduledTime: Long,
+    val isJamaah: Boolean,
+    val isQadaFor: Long?,
+    val note: String?,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+```
+
+<ParamField path="prayerName" type="PrayerName">
+  The name of the prayer (Fajr, Dhuhr, Asr, Maghrib, Isha)
+</ParamField>
+
+<ParamField path="status" type="PrayerStatus">
+  Current status: PRAYED, MISSED, QADA, PENDING, LATE, or NOT_PRAYED
+</ParamField>
+
+<ParamField path="isJamaah" type="Boolean">
+  Whether the prayer was performed in congregation
+</ParamField>
+
+### PrayerName
+
+```kotlin
+enum class PrayerName {
+    FAJR,
+    SUNRISE,
+    DHUHR,
+    ASR,
+    MAGHRIB,
+    ISHA
+}
+```
+
+### PrayerStatus
+
+```kotlin
+enum class PrayerStatus {
+    PRAYED,
+    MISSED,
+    QADA,
+    PENDING,
+    LATE,
+    NOT_PRAYED
+}
+```
+
+### Location
+
+Stores location data with prayer calculation settings.
+
+```kotlin
+data class Location(
+    val id: Long,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val timezone: String,
+    val country: String?,
+    val city: String?,
+    val isCurrentLocation: Boolean,
+    val isFavorite: Boolean,
+    val calculationMethod: CalculationMethod,
+    val asrCalculation: AsrCalculation,
+    val highLatitudeRule: HighLatitudeRule?,
+    val fajrAngle: Double?,
+    val ishaAngle: Double?
+)
+```
+
+### CalculationMethod
+
+Different methods for calculating prayer times.
+
+```kotlin
+enum class CalculationMethod {
+    MUSLIM_WORLD_LEAGUE,
+    EGYPTIAN,
+    KARACHI,
+    UMM_AL_QURA,
+    DUBAI,
+    MOON_SIGHTING_COMMITTEE,
+    NORTH_AMERICA,
+    KUWAIT,
+    QATAR,
+    SINGAPORE,
+    TURKEY
+}
+```
+
+### PrayerStats
+
+Statistics about prayer tracking over a time period.
+
+```kotlin
+data class PrayerStats(
+    val totalPrayed: Int,
+    val totalMissed: Int,
+    val totalJamaah: Int,
+    val prayedByPrayer: Map<PrayerName, Int>,
+    val missedByPrayer: Map<PrayerName, Int>,
+    val currentStreak: Int,
+    val longestStreak: Int,
+    val perfectDays: Int,
+    val startDate: Long,
+    val endDate: Long
+)
+```
+
+## Hadith models
+
+Models for hadith collections, books, and chapters.
+
+### HadithBook
+
+Represents a hadith collection (e.g., Sahih Bukhari, Sahih Muslim).
+
+```kotlin
+data class HadithBook(
+    val id: String,
+    val nameArabic: String,
+    val nameEnglish: String,
+    val authorName: String,
+    val authorArabic: String,
+    val totalHadiths: Int,
+    val totalChapters: Int,
+    val description: String?,
+    val displayOrder: Int
+)
+```
+
+### HadithChapter
+
+Represents a chapter within a hadith book.
+
+```kotlin
+data class HadithChapter(
+    val id: String,
+    val bookId: String,
+    val chapterNumber: Int,
+    val nameArabic: String,
+    val nameEnglish: String,
+    val hadithCount: Int,
+    val hadithStartNumber: Int,
+    val hadithEndNumber: Int
+)
+```
+
+### Hadith
+
+Represents an individual hadith narration.
+
+```kotlin
+data class Hadith(
+    val id: String,
+    val bookId: String,
+    val chapterId: String,
+    val hadithNumber: Int,
+    val hadithNumberInBook: Int,
+    val textArabic: String,
+    val textEnglish: String,
+    val narratorChain: String?,
+    val narratorName: String?,
+    val grade: HadithGrade?,
+    val gradeArabic: String?,
+    val reference: String?,
+    val isBookmarked: Boolean = false
+)
+```
+
+### HadithGrade
+
+Authenticity grading for hadiths.
+
+```kotlin
+enum class HadithGrade {
+    SAHIH,      // Authentic
+    HASAN,      // Good
+    DAIF,       // Weak
+    MAWDU,      // Fabricated
+    UNKNOWN
+}
+```
+
+## Dua models
+
+Models for supplications and their categories.
+
+### DuaCategory
+
+Categories for organizing duas.
+
+```kotlin
+data class DuaCategory(
+    val id: String,
+    val nameArabic: String,
+    val nameEnglish: String,
+    val description: String?,
+    val iconName: String?,
+    val displayOrder: Int,
+    val duaCount: Int
+)
+```
+
+### Dua
+
+Represents a supplication with Arabic text, transliteration, and translation.
+
+```kotlin
+data class Dua(
+    val id: String,
+    val categoryId: String,
+    val titleArabic: String,
+    val titleEnglish: String,
+    val textArabic: String,
+    val textTransliteration: String?,
+    val textEnglish: String,
+    val reference: String?,
+    val occasion: DuaOccasion?,
+    val benefits: String?,
+    val repeatCount: Int?,
+    val audioUrl: String?,
+    val displayOrder: Int,
+    val isFavorite: Boolean = false,
+    val isBookmarked: Boolean = false
+)
+```
+
+### DuaOccasion
+
+Times or situations when a dua is recommended.
+
+```kotlin
+enum class DuaOccasion {
+    MORNING,
+    EVENING,
+    AFTER_PRAYER,
+    BEFORE_SLEEP,
+    WAKING_UP,
+    EATING,
+    TRAVELING,
+    ENTERING_MOSQUE,
+    LEAVING_MOSQUE,
+    ENTERING_HOME,
+    LEAVING_HOME,
+    RAIN,
+    DISTRESS,
+    FORGIVENESS,
+    PARENTS,
+    GRATITUDE,
+    GENERAL
+}
+```
+
+## Tasbih models
+
+Models for digital tasbih (dhikr counter).
+
+### TasbihPreset
+
+Predefined dhikr phrases with target counts.
+
+```kotlin
+data class TasbihPreset(
+    val id: Long,
+    val name: String,
+    val arabicText: String?,
+    val transliteration: String?,
+    val translation: String?,
+    val targetCount: Int,
+    val category: TasbihCategory?,
+    val reference: String?,
+    val isDefault: Boolean,
+    val displayOrder: Int,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+```
+
+### TasbihSession
+
+Tracks a tasbih counting session.
+
+```kotlin
+data class TasbihSession(
+    val id: Long,
+    val presetId: Long?,
+    val presetName: String?,
+    val date: Long,
+    val currentCount: Int,
+    val targetCount: Int,
+    val totalLaps: Int,
+    val isCompleted: Boolean,
+    val duration: Long?,
+    val startedAt: Long,
+    val completedAt: Long?,
+    val note: String?
+)
+```
+
+### TasbihCategory
+
+```kotlin
+enum class TasbihCategory {
+    DAILY,
+    AFTER_PRAYER,
+    MORNING,
+    EVENING,
+    CUSTOM
+}
+```
+
+## Fasting models
+
+Models for Ramadan and voluntary fasting tracking.
+
+### FastRecord
+
+Records fasting for a specific day.
+
+```kotlin
+data class FastRecord(
+    val id: Long,
+    val date: Long,
+    val hijriDate: String?,
+    val hijriMonth: Int?,
+    val hijriYear: Int?,
+    val fastType: FastType,
+    val status: FastStatus,
+    val exemptionReason: ExemptionReason?,
+    val suhoorTime: Long?,
+    val iftarTime: Long?,
+    val note: String?,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+```
+
+### FastType
+
+```kotlin
+enum class FastType {
+    RAMADAN,
+    VOLUNTARY,
+    MAKEUP,
+    EXPIATION,
+    VOW
+}
+```
+
+### FastStatus
+
+```kotlin
+enum class FastStatus {
+    FASTED,
+    NOT_FASTED,
+    EXEMPTED,
+    MAKEUP_DUE
+}
+```
+
+### MakeupFast
+
+Tracks makeup fasts that need to be completed.
+
+```kotlin
+data class MakeupFast(
+    val id: Long,
+    val originalDate: Long,
+    val originalHijriDate: String?,
+    val reason: String,
+    val status: MakeupFastStatus,
+    val completedDate: Long?,
+    val fidyaAmount: Double?,
+    val note: String?,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+```
+
+## Zakat models
+
+Models for zakat calculation.
+
+### ZakatCalculation
+
+Complete zakat calculation result.
+
+```kotlin
+data class ZakatCalculation(
+    val id: Long = 0,
+    val calculatedAt: Long = System.currentTimeMillis(),
+    val totalAssets: Double,
+    val totalLiabilities: Double,
+    val netWorth: Double,
+    val nisabType: NisabType,
+    val nisabValue: Double,
+    val isAboveNisab: Boolean,
+    val zakatableAmount: Double = netWorth,
+    val zakatDue: Double,
+    val goldValue: Double = 0.0,
+    val silverValue: Double = 0.0,
+    val currency: String = "USD",
+    val note: String? = null
+)
+```
+
+### ZakatAssets
+
+All assets to be considered for zakat.
+
+```kotlin
+data class ZakatAssets(
+    val cashOnHand: Double = 0.0,
+    val bankBalance: Double = 0.0,
+    val goldGrams: Double = 0.0,
+    val silverGrams: Double = 0.0,
+    val investments: Double = 0.0,
+    val businessInventory: Double = 0.0,
+    val receivables: Double = 0.0,
+    val rentalIncome: Double = 0.0,
+    val otherAssets: Double = 0.0
+)
+```
+
+### NisabType
+
+Threshold calculation based on gold or silver.
+
+```kotlin
+enum class NisabType {
+    GOLD,    // 87.48 grams
+    SILVER   // 612.36 grams
+}
+```
+
+## Khatam models
+
+Models for Quran completion tracking.
+
+### Khatam
+
+Represents a Quran reading plan/goal.
+
+```kotlin
+data class Khatam(
+    val id: Long = 0,
+    val name: String,
+    val notes: String? = null,
+    val status: KhatamStatus = KhatamStatus.ACTIVE,
+    val isActive: Boolean = false,
+    val dailyTarget: Int = 20,
+    val deadline: Long? = null,
+    val reminderEnabled: Boolean = false,
+    val reminderTime: String? = null,
+    val totalAyahsRead: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val startedAt: Long? = null,
+    val completedAt: Long? = null,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+```
+
+<ParamField path="dailyTarget" type="Int">
+  Number of ayahs to read per day
+</ParamField>
+
+<ParamField path="totalAyahsRead" type="Int">
+  Progress out of 6,236 total Quran ayahs
+</ParamField>
+
+### KhatamStatus
+
+```kotlin
+enum class KhatamStatus {
+    ACTIVE,
+    COMPLETED,
+    ABANDONED
+}
+```
+
+### JuzProgressInfo
+
+Progress for a specific juz in a khatam.
+
+```kotlin
+data class JuzProgressInfo(
+    val juzNumber: Int,
+    val totalAyahs: Int,
+    val readAyahs: Int
+)
+```
+
+## Qibla models
+
+Models for Qibla direction calculation.
+
+### QiblaDirection
+
+Calculated direction to the Kaaba.
+
+```kotlin
+data class QiblaDirection(
+    val bearing: Double,      // Degrees from North (0-360)
+    val distance: Double,     // Distance to Kaaba in kilometers
+    val userLatitude: Double,
+    val userLongitude: Double
+)
+```
+
+### CompassData
+
+Device compass sensor data.
+
+```kotlin
+data class CompassData(
+    val azimuth: Float = 0f,       // Device heading in degrees (0-360)
+    val pitch: Float = 0f,         // Device tilt forward/backward
+    val roll: Float = 0f,          // Device tilt left/right
+    val accuracy: CompassAccuracy = CompassAccuracy.MEDIUM,
+    val timestamp: Long = System.currentTimeMillis()
+)
+```
+
+### CompassAccuracy
+
+```kotlin
+enum class CompassAccuracy {
+    UNRELIABLE,
+    LOW,
+    MEDIUM,
+    HIGH
+}
+```
+
+## Asma ul Husna models
+
+Models for the 99 names of Allah.
+
+### AsmaUlHusna
+
+Represents one of the 99 beautiful names of Allah.
+
+```kotlin
+data class AsmaUlHusna(
+    val id: Int,
+    val number: Int,
+    val nameArabic: String,
+    val nameTransliteration: String,
+    val nameEnglish: String,
+    val meaning: String,
+    val explanation: String,
+    val benefits: String,
+    val quranReferences: List<String>,
+    val usageInDua: String,
+    val displayOrder: Int,
+    val isFavorite: Boolean = false
+)
+```

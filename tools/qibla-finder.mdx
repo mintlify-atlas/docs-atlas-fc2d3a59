@@ -1,0 +1,146 @@
+---
+title: Qibla finder
+description: Find the Qibla direction with compass and AR camera support
+---
+
+The Qibla finder helps users locate the direction of the Kaaba in Mecca for prayer. It provides two viewing modes: a traditional compass view and an augmented reality (AR) camera view.
+
+## Features
+
+### Dual viewing modes
+
+Users can switch between two modes using a pill tab selector at the top of the screen:
+
+- **Compass mode**: Traditional compass with rotating dial and directional indicators
+- **AR mode**: Live camera view with overlaid directional guidance
+
+### Compass mode
+
+The compass mode displays a circular compass with the following elements:
+
+**Visual indicators**
+- Rotating compass dial with 360-degree markings
+- Qibla direction arrow pointing toward Mecca
+- Cardinal direction markers (N, E, S, W)
+- Static north indicator at the top
+- Center dot that changes to a mosque icon when facing Qibla
+
+**Information display**
+- Current location name and coordinates
+- Qibla bearing in degrees and cardinal direction
+- Distance to Mecca in kilometers
+- Turn direction hint ("Turn left X°" or "Turn right X°")
+
+**Facing Qibla confirmation**
+
+When the user is aligned with the Qibla direction:
+- Green glow effect appears around the compass
+- Center indicator shows a mosque icon
+- Banner displays "Facing Qibla" message
+- Visual feedback changes to green color scheme
+
+### AR camera mode
+
+The AR mode overlays directional information on the live camera feed:
+
+**On-screen elements**
+- Qibla direction marker that tracks the Kaaba location
+- Edge arrows when Qibla is outside the camera view
+- Compass strip at the bottom showing current heading
+- Top HUD displaying current heading and Qibla bearing
+- Bottom HUD showing distance to Mecca and compass accuracy
+
+**Facing Qibla indicator**
+
+When aligned with Qibla:
+- Pulsing concentric rings appear at the center
+- Large mosque icon with radial glow effect
+- "Facing Qibla" badge in green gradient
+- Screen border glow in green color
+
+**AR overlay components**
+- Horizontal field of view: 60 degrees
+- Qibla marker appears on screen when within visible range
+- Diamond-shaped marker on compass strip
+- Turn direction hints for navigation
+
+## How users interact
+
+### Initial setup
+
+1. Grant location permission to determine current position
+2. The app calculates Qibla direction using the Haversine formula
+3. Compass sensors start providing device orientation data
+
+### Switching modes
+
+1. Tap the "Compass" or "AR" tab at the top
+2. For AR mode, grant camera permission when prompted
+3. View transitions smoothly with crossfade animation
+
+### Finding Qibla
+
+**In compass mode:**
+1. Hold the device flat like a traditional compass
+2. Rotate slowly until the compass needle aligns with Qibla arrow
+3. Watch for turn direction hints (left/right with degrees)
+4. When aligned, see green confirmation indicators
+
+**In AR mode:**
+1. Hold the device upright and point the camera forward
+2. Follow the on-screen Qibla marker
+3. Turn toward the marker if it's off-screen (follow edge arrows)
+4. Align the device until pulsing green indicator appears
+
+### Compass calibration
+
+The app monitors compass accuracy with four levels:
+- **High**: Green indicator, reliable readings
+- **Medium**: Yellow indicator, acceptable accuracy
+- **Low**: Red indicator with calibrate button
+- **Unreliable**: Red indicator with calibrate button
+
+**To calibrate:**
+1. Tap the "Calibrate" button in the accuracy section
+2. Follow the calibration dialog instructions:
+   - Hold device away from metal objects and magnets
+   - Move phone in a figure-8 pattern slowly
+   - Repeat the motion 2-3 times
+   - Wait for accuracy to improve
+
+## Calculations
+
+### Qibla bearing
+
+The app calculates the Qibla bearing from the user's location using:
+
+- **Kaaba coordinates**: 21.4225°N, 39.8262°E
+- **Bearing formula**: Accounts for Earth's curvature
+- **Output**: 0-360 degrees from true north
+
+### Distance calculation
+
+Distance to Mecca is calculated using the Haversine formula:
+- Accounts for Earth's spherical shape
+- Earth radius: 6,371 km
+- Returns great-circle distance in kilometers
+
+### Alignment detection
+
+The app considers the user facing Qibla when:
+- Compass heading is within ±5° of Qibla bearing
+- Provides immediate visual feedback
+- Updates continuously as device moves
+
+## Technical implementation
+
+Relevant source files:
+- `QiblaModels.kt` - Data models and calculations
+- `QiblaScreen.kt` - Compass mode UI
+- `ArQiblaView.kt` - AR camera overlay
+- `QiblaViewModel.kt` - State management
+
+The Qibla calculator uses:
+- `CompassData` - Azimuth, pitch, roll, and accuracy
+- `QiblaDirection` - Bearing and distance to Kaaba
+- `QiblaInfo` - Complete location and direction data

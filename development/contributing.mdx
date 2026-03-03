@@ -1,0 +1,237 @@
+---
+title: Contributing to Nimaz
+description: Guidelines for contributing code, reporting issues, and submitting pull requests
+---
+
+We welcome contributions to Nimaz! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
+
+## Getting started
+
+Before you begin contributing, please:
+
+<Steps>
+  <Step title="Fork the repository">
+    Create your own fork of the Nimaz repository on GitHub
+  </Step>
+  
+  <Step title="Clone your fork">
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/nimaz.git
+    cd nimaz
+    ```
+  </Step>
+  
+  <Step title="Create a branch">
+    Create a new branch for your feature or bug fix:
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
+    
+    Use descriptive branch names:
+    - `feature/` for new features
+    - `fix/` for bug fixes
+    - `docs/` for documentation changes
+    - `refactor/` for code refactoring
+  </Step>
+</Steps>
+
+## Code style and standards
+
+### Kotlin conventions
+
+Nimaz follows the [official Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html):
+
+```kotlin
+// Use meaningful variable names
+val prayerTimeCalculator = PrayerTimeCalculator()
+
+// Follow proper spacing and formatting
+class PrayerRepository(
+    private val dao: PrayerDao,
+    private val preferences: UserPreferences
+) {
+    fun getPrayerTimes(): Flow<List<PrayerTime>> {
+        return dao.getAllPrayerTimes()
+    }
+}
+```
+
+<Note>
+The project uses `kotlin.code.style=official` in `gradle.properties` to enforce consistent formatting.
+</Note>
+
+### Architecture patterns
+
+Nimaz follows modern Android architecture best practices:
+
+- **MVVM Architecture**: Use ViewModels for UI logic
+- **Repository Pattern**: Abstract data sources behind repository interfaces
+- **Dependency Injection**: Use Hilt for dependency injection
+- **Jetpack Compose**: All UI is built with Compose Material 3
+- **Clean Architecture**: Separate concerns into layers (data, domain, presentation)
+
+### Project structure
+
+```
+app/src/main/java/com/arshadshah/nimaz/
+├── data/           # Data layer (repositories, data sources)
+├── di/             # Dependency injection modules
+├── domain/         # Domain layer (use cases, models)
+├── ui/             # Presentation layer (composables, ViewModels)
+└── utils/          # Utility classes and extensions
+```
+
+## Making changes
+
+### Before you code
+
+1. **Check existing issues**: Search for related issues or discussions
+2. **Create an issue**: For significant changes, create an issue first to discuss your approach
+3. **Keep changes focused**: Each pull request should address a single concern
+
+### Writing code
+
+<Steps>
+  <Step title="Write clean, documented code">
+    Add KDoc comments for public APIs:
+    ```kotlin
+    /**
+     * Calculates prayer times for the given location and date.
+     *
+     * @param coordinates The geographic coordinates
+     * @param date The date to calculate prayer times for
+     * @return A list of prayer times for the day
+     */
+    fun calculatePrayerTimes(
+        coordinates: Coordinates,
+        date: LocalDate
+    ): List<PrayerTime>
+    ```
+  </Step>
+  
+  <Step title="Add tests">
+    Write unit tests for new functionality. See [Testing](/development/testing) for details.
+  </Step>
+  
+  <Step title="Run lint checks">
+    Ensure your code passes lint checks:
+    ```bash
+    ./gradlew lint
+    ```
+  </Step>
+  
+  <Step title="Test your changes">
+    Run all tests before submitting:
+    ```bash
+    ./gradlew test
+    ./gradlew connectedAndroidTest
+    ```
+  </Step>
+</Steps>
+
+### Commit messages
+
+Write clear, concise commit messages following conventional commits:
+
+```bash
+# Format: type(scope): subject
+
+# Examples:
+feat(prayer-times): add support for custom calculation methods
+fix(qibla): correct compass orientation on landscape mode
+docs(readme): update installation instructions
+refactor(database): migrate to Room 2.6
+test(repository): add unit tests for PrayerRepository
+```
+
+**Commit types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+- `perf`: Performance improvements
+
+## Submitting a pull request
+
+<Steps>
+  <Step title="Push your changes">
+    ```bash
+    git add .
+    git commit -m "feat(scope): your descriptive message"
+    git push origin feature/your-feature-name
+    ```
+  </Step>
+  
+  <Step title="Create pull request">
+    Open a pull request on GitHub targeting the `dev` branch (not `master`)
+  </Step>
+  
+  <Step title="Fill out the PR template">
+    Provide:
+    - Clear description of changes
+    - Related issue numbers (if applicable)
+    - Screenshots/videos for UI changes
+    - Testing steps performed
+  </Step>
+  
+  <Step title="Wait for review">
+    Automated checks will run:
+    - Unit tests
+    - Lint checks
+    - Build verification
+    
+    A maintainer will review your code and may request changes.
+  </Step>
+</Steps>
+
+<Warning>
+All pull requests to `master` must pass automated PR checks including tests and lint validation. PRs should target the `dev` branch for review before merging to `master`.
+</Warning>
+
+## Automated checks
+
+When you submit a pull request, GitHub Actions will automatically run:
+
+1. **Build verification**: Ensures the app builds successfully
+2. **Unit tests**: Runs all unit tests (`./gradlew test`)
+3. **Lint checks**: Validates code style (`./gradlew lint`)
+4. **Test reports**: Generates and uploads test results
+
+You can view the workflow configuration in `.github/workflows/pr_checks.yml`.
+
+## Dependencies
+
+### Adding new dependencies
+
+If your contribution requires new dependencies:
+
+1. Add them to the version catalog (`gradle/libs.versions.toml`)
+2. Justify the dependency in your PR description
+3. Consider alternatives and library size impact
+4. Ensure the dependency license is compatible
+
+<Note>
+Nimaz uses Gradle version catalogs for dependency management. Check `gradle/libs.versions.toml` for existing libraries.
+</Note>
+
+## Development setup
+
+For detailed setup instructions, see [Building from source](/development/building).
+
+## Getting help
+
+If you need help:
+
+- **GitHub Issues**: Ask questions or report problems
+- **Discussions**: Join community discussions
+- **Code Review**: Don't hesitate to ask questions during review
+
+## Code of conduct
+
+Be respectful and constructive in all interactions. We're building this together to create a better prayer app for the community.
+
+## License
+
+By contributing to Nimaz, you agree that your contributions will be licensed under the same license as the project.

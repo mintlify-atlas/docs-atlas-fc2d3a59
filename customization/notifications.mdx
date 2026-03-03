@@ -1,0 +1,236 @@
+---
+title: Prayer notifications
+description: Configure prayer time alerts, adhan sounds, reminders, and notification behavior
+---
+
+Nimaz provides comprehensive notification settings for prayer times, including customizable adhan sounds, per-prayer toggles, pre-prayer reminders, and battery optimization guidance.
+
+## Notification settings
+
+### Global notification toggle
+
+Users can enable or disable all prayer notifications with a master switch:
+
+```kotlin PreferencesDataStore.kt:289-297
+val prayerNotificationsEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.PRAYER_NOTIFICATIONS_ENABLED] ?: true
+}
+
+suspend fun setPrayerNotificationsEnabled(enabled: Boolean) {
+    dataStore.edit { preferences ->
+        preferences[PreferencesKeys.PRAYER_NOTIFICATIONS_ENABLED] = enabled
+    }
+}
+```
+
+### Per-prayer notifications
+
+Each of the five daily prayers plus sunrise can be individually enabled or disabled:
+
+- **Fajr** - Enabled by default
+- **Sunrise** - Disabled by default (optional alert)
+- **Dhuhr** - Enabled by default
+- **Asr** - Enabled by default
+- **Maghrib** - Enabled by default
+- **Isha** - Enabled by default
+
+```kotlin PreferencesDataStore.kt:317-337
+val fajrNotificationEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.FAJR_NOTIFICATION_ENABLED] ?: true }
+val sunriseNotificationEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.SUNRISE_NOTIFICATION_ENABLED] ?: false }
+val dhuhrNotificationEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.DHUHR_NOTIFICATION_ENABLED] ?: true }
+val asrNotificationEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.ASR_NOTIFICATION_ENABLED] ?: true }
+val maghribNotificationEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.MAGHRIB_NOTIFICATION_ENABLED] ?: true }
+val ishaNotificationEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.ISHA_NOTIFICATION_ENABLED] ?: true }
+
+suspend fun setPrayerNotificationEnabled(prayer: String, enabled: Boolean) {
+    dataStore.edit { prefs ->
+        val key = when (prayer.lowercase()) {
+            "fajr" -> PreferencesKeys.FAJR_NOTIFICATION_ENABLED
+            "sunrise" -> PreferencesKeys.SUNRISE_NOTIFICATION_ENABLED
+            "dhuhr" -> PreferencesKeys.DHUHR_NOTIFICATION_ENABLED
+            "asr" -> PreferencesKeys.ASR_NOTIFICATION_ENABLED
+            "maghrib" -> PreferencesKeys.MAGHRIB_NOTIFICATION_ENABLED
+            "isha" -> PreferencesKeys.ISHA_NOTIFICATION_ENABLED
+            else -> return@edit
+        }
+        prefs[key] = enabled
+    }
+}
+```
+
+## Adhan sounds
+
+### Global adhan toggle
+
+Users can enable full adhan playback for prayer notifications:
+
+```kotlin PreferencesDataStore.kt:299-307
+val adhanEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.ADHAN_ENABLED] ?: false
+}
+
+suspend fun setAdhanEnabled(enabled: Boolean) {
+    dataStore.edit { preferences ->
+        preferences[PreferencesKeys.ADHAN_ENABLED] = enabled
+    }
+}
+```
+
+<Warning>
+  Adhan is disabled by default to respect user preferences and privacy.
+</Warning>
+
+### Available muezzins
+
+Nimaz offers multiple adhan recordings from renowned muezzins:
+
+```kotlin AdhanSound.kt:15-50
+enum class AdhanSound(
+    val displayName: String,
+    val origin: String,
+    val fileName: String,
+    val fajrFileName: String,
+    val downloadUrl: String,
+    val fajrDownloadUrl: String
+) {
+    MISHARY(
+        displayName = "Mishary Rashid Alafasy",
+        origin = "Kuwait",
+        fileName = "adhan_mishary.mp3",
+        fajrFileName = "adhan_mishary_fajr.mp3",
+        downloadUrl = "https://archive.org/download/AdhanMisharyRashid/Adhan%20Mishary%20Rashid.mp3",
+        fajrDownloadUrl = "https://archive.org/download/AdhanFajrAndDuaBySyeikhMisharyRashidAlAfasy/..."
+    ),
+    ABDUL_BASIT(
+        displayName = "Abdul Basit Abdul Samad",
+        origin = "Egypt",
+        // ...
+    ),
+    MAKKAH(
+        displayName = "Makkah (Masjid al-Haram)",
+        origin = "Saudi Arabia",
+        // ...
+    ),
+    SIMPLE_BEEP(
+        displayName = "Simple Beep",
+        origin = "System sound",
+        // ...
+    )
+}
+```
+
+<Info>
+  Fajr adhan includes the additional phrase "الصلاة خير من النوم" (Prayer is better than sleep).
+</Info>
+
+### Per-prayer adhan control
+
+Each prayer can have adhan individually toggled, even when global adhan is enabled:
+
+```kotlin PreferencesDataStore.kt:340-358
+val fajrAdhanEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.FAJR_ADHAN_ENABLED] ?: true }
+val dhuhrAdhanEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.DHUHR_ADHAN_ENABLED] ?: true }
+val asrAdhanEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.ASR_ADHAN_ENABLED] ?: true }
+val maghribAdhanEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.MAGHRIB_ADHAN_ENABLED] ?: true }
+val ishaAdhanEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.ISHA_ADHAN_ENABLED] ?: true }
+
+suspend fun setPrayerAdhanEnabled(prayer: String, enabled: Boolean) {
+    dataStore.edit { prefs ->
+        val key = when (prayer.lowercase()) {
+            "fajr" -> PreferencesKeys.FAJR_ADHAN_ENABLED
+            "dhuhr" -> PreferencesKeys.DHUHR_ADHAN_ENABLED
+            "asr" -> PreferencesKeys.ASR_ADHAN_ENABLED
+            "maghrib" -> PreferencesKeys.MAGHRIB_ADHAN_ENABLED
+            "isha" -> PreferencesKeys.ISHA_ADHAN_ENABLED
+            else -> return@edit
+        }
+        prefs[key] = enabled
+    }
+}
+```
+
+<Note>
+  Sunrise always uses a simple beep and never plays full adhan.
+</Note>
+
+## Additional alerts
+
+### Pre-prayer reminders
+
+Users can enable notifications before prayer time:
+
+```kotlin PreferencesDataStore.kt:392-406
+val notificationReminderMinutes: Flow<Int> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.NOTIFICATION_REMINDER_MINUTES] ?: 15
+}
+
+val showReminderBefore: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.SHOW_REMINDER_BEFORE] ?: true
+}
+```
+
+The default reminder is 15 minutes before prayer time and is enabled by default.
+
+### Notification behavior
+
+Additional notification settings include:
+
+- **Vibration** - Vibrate on prayer notifications (default: enabled)
+- **Respect Do Not Disturb** - Honor system DND mode for adhan playback (default: enabled)
+- **Persistent notification** - Show ongoing notification (default: disabled)
+
+```kotlin PreferencesDataStore.kt:376-390
+val adhanRespectDnd: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.ADHAN_RESPECT_DND] ?: true
+}
+
+val notificationVibration: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.NOTIFICATION_VIBRATION] ?: true
+}
+
+val persistentNotification: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.PERSISTENT_NOTIFICATION] ?: false
+}
+```
+
+## Notification scheduling
+
+The `PrayerNotificationScheduler` handles all notification timing using Android's `AlarmManager`:
+
+```kotlin PrayerNotificationScheduler.kt:107-175
+fun scheduleTodaysPrayerNotifications(
+    latitude: Double,
+    longitude: Double,
+    notificationsEnabled: Boolean,
+    enabledPrayers: Set<PrayerType>? = null,
+    preReminderEnabled: Boolean = false,
+    preReminderMinutes: Int = 15,
+    calculationMethod: CalculationMethod = CalculationMethod.MUSLIM_WORLD_LEAGUE,
+    asrCalculation: AsrCalculation = AsrCalculation.STANDARD,
+    highLatitudeRule: HighLatitudeRule? = null,
+    adjustments: Map<PrayerType, Int> = emptyMap()
+)
+```
+
+Notifications are automatically rescheduled:
+
+- At device boot via `BootReceiver`
+- At midnight for the next day's prayers
+- When settings change
+
+<Tip>
+  Use the "Test Notification" and "Test All Notifications" buttons in settings to verify notification permissions and scheduling.
+</Tip>
+
+## Battery optimization
+
+The notification settings screen includes guidance for disabling battery optimization to ensure reliable prayer notifications:
+
+```kotlin NotificationSettingsScreen.kt:454-513
+val powerManager = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
+val isExempted = powerManager.isIgnoringBatteryOptimizations(context.packageName)
+
+// Shows warning banner and button to open battery settings if not exempted
+```
+
+This ensures the app can wake the device for prayer notifications even in Doze mode.

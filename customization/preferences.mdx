@@ -1,0 +1,278 @@
+---
+title: User preferences
+description: Configure display formats, animations, haptic feedback, and Islamic calendar settings
+---
+
+Nimaz offers extensive customization options for display preferences, interaction feedback, calendar formats, and UI behavior to personalize the prayer experience.
+
+## Display preferences
+
+### Time format
+
+Users can choose between 12-hour and 24-hour time formats:
+
+```kotlin PreferencesDataStore.kt:189-195
+val use24HourFormat: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.USE_24_HOUR_FORMAT] ?: false
+}
+
+suspend fun setUse24HourFormat(enabled: Boolean) {
+    dataStore.edit { it[PreferencesKeys.USE_24_HOUR_FORMAT] = enabled }
+}
+```
+
+The preference defaults to **12-hour format** with AM/PM indicators. The setting is exposed through a `CompositionLocal` for UI components:
+
+```kotlin Theme.kt:25
+val LocalUse24HourFormat = compositionLocalOf { false }
+```
+
+### Hijri calendar
+
+Users can display the Islamic (Hijri) calendar as the primary date:
+
+```kotlin PreferencesDataStore.kt:197-203
+val useHijriPrimary: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.USE_HIJRI_PRIMARY] ?: false
+}
+
+suspend fun setUseHijriPrimary(enabled: Boolean) {
+    dataStore.edit { it[PreferencesKeys.USE_HIJRI_PRIMARY] = enabled }
+}
+```
+
+When enabled, the Hijri date appears prominently on the home screen with the Gregorian date shown as secondary information.
+
+<Info>
+  The Hijri date is calculated using `HijriDateCalculator.kt` which implements the Umm al-Qura calendar system.
+</Info>
+
+### Countdown display
+
+Toggle the prayer time countdown timer on the home screen:
+
+```kotlin PreferencesDataStore.kt:165-171
+val showCountdown: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.SHOW_COUNTDOWN] ?: true
+}
+
+suspend fun setShowCountdown(enabled: Boolean) {
+    dataStore.edit { it[PreferencesKeys.SHOW_COUNTDOWN] = enabled }
+}
+```
+
+Defaults to **enabled**, showing a live countdown to the next prayer time.
+
+### Quick actions
+
+Toggle quick action buttons on the home screen:
+
+```kotlin PreferencesDataStore.kt:173-179
+val showQuickActions: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.SHOW_QUICK_ACTIONS] ?: true
+}
+
+suspend fun setShowQuickActions(enabled: Boolean) {
+    dataStore.edit { it[PreferencesKeys.SHOW_QUICK_ACTIONS] = enabled }
+}
+```
+
+Quick actions provide shortcuts to common features like Qibla direction and Tasbih counter.
+
+## Interaction preferences
+
+### Haptic feedback
+
+Enable vibration feedback for user interactions:
+
+```kotlin PreferencesDataStore.kt:181-187
+val hapticFeedback: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.HAPTIC_FEEDBACK] ?: true
+}
+
+suspend fun setHapticFeedback(enabled: Boolean) {
+    dataStore.edit { it[PreferencesKeys.HAPTIC_FEEDBACK] = enabled }
+}
+```
+
+Haptic feedback is **enabled by default** and provides tactile response for:
+
+- Button presses
+- Prayer time marks
+- Tasbih counter increments
+- Navigation gestures
+
+The setting is exposed globally through the theme:
+
+```kotlin Theme.kt:23
+val LocalHapticEnabled = compositionLocalOf { true }
+```
+
+### Animations
+
+Control smooth transitions and motion effects:
+
+```kotlin PreferencesDataStore.kt:157-162
+val animationsEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.ANIMATIONS_ENABLED] ?: true
+}
+
+suspend fun setAnimationsEnabled(enabled: Boolean) {
+    dataStore.edit { it[PreferencesKeys.ANIMATIONS_ENABLED] = enabled }
+}
+```
+
+Animations are **enabled by default** and include:
+
+- Screen transitions
+- Prayer time animations
+- Qibla compass rotation
+- Loading states
+
+Disabling animations can improve performance on lower-end devices.
+
+```kotlin Theme.kt:24
+val LocalAnimationsEnabled = compositionLocalOf { true }
+```
+
+## Quran preferences
+
+### Translation settings
+
+Configure which Quran translation to display:
+
+```kotlin PreferencesDataStore.kt:416-444
+val quranTranslatorId: Flow<String> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.QURAN_TRANSLATOR_ID] ?: "sahih_international"
+}
+
+val showTranslation: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.SHOW_TRANSLATION] ?: true
+}
+
+val showTransliteration: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.SHOW_TRANSLITERATION] ?: false
+}
+```
+
+Defaults:
+- **Translation**: Sahih International (English)
+- **Show translation**: Enabled
+- **Show transliteration**: Disabled
+
+### Font sizes
+
+Independent font size controls for Arabic and translation text:
+
+```kotlin PreferencesDataStore.kt:458-472
+val quranArabicFontSize: Flow<Float> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.QURAN_ARABIC_FONT_SIZE] ?: 28f
+}
+
+val quranTranslationFontSize: Flow<Float> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.QURAN_TRANSLATION_FONT_SIZE] ?: 16f
+}
+```
+
+Default sizes:
+- **Arabic text**: 28sp
+- **Translation text**: 16sp
+
+### Reading preferences
+
+```kotlin PreferencesDataStore.kt:474-496
+val continuousReading: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.CONTINUOUS_READING] ?: true
+}
+
+val keepScreenOn: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.KEEP_SCREEN_ON] ?: true
+}
+
+val showTajweed: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.SHOW_TAJWEED] ?: false
+}
+```
+
+- **Continuous reading**: Auto-scroll to next page (default: enabled)
+- **Keep screen on**: Prevent screen timeout while reading (default: enabled)
+- **Tajweed colors**: Color-code Quranic recitation rules (default: disabled)
+
+<Tip>
+  Enabling Tajweed colors helps learners understand proper Quran recitation rules through visual cues.
+</Tip>
+
+## Tasbih preferences
+
+Configure feedback for the digital Tasbih (prayer counter):
+
+```kotlin PreferencesDataStore.kt:499-517
+val tasbihVibrationEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.TASBIH_VIBRATION_ENABLED] ?: true
+}
+
+val tasbihSoundEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.TASBIH_SOUND_ENABLED] ?: true
+}
+```
+
+Both vibration and sound feedback are **enabled by default** to provide clear confirmation of each count increment.
+
+## Onboarding state
+
+Track whether the user has completed initial app setup:
+
+```kotlin PreferencesDataStore.kt:116-124
+val onboardingCompleted: Flow<Boolean> = dataStore.data.map { preferences ->
+    preferences[PreferencesKeys.ONBOARDING_COMPLETED] ?: false
+}
+
+suspend fun setOnboardingCompleted(completed: Boolean) {
+    dataStore.edit { preferences ->
+        preferences[PreferencesKeys.ONBOARDING_COMPLETED] = completed
+    }
+}
+```
+
+This controls whether to show the welcome/setup flow on app launch.
+
+## Preference persistence
+
+All preferences are stored using Android's DataStore (Preferences):
+
+```kotlin PreferencesDataStore.kt:19
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "nimaz_preferences")
+```
+
+DataStore provides:
+
+- Type-safe preference storage
+- Asynchronous read/write with Flow
+- Automatic data migration
+- Crash protection during writes
+
+### Resetting preferences
+
+Users can reset all settings to defaults:
+
+```kotlin PreferencesDataStore.kt:111-113
+suspend fun clearAllData() {
+    dataStore.edit { it.clear() }
+}
+```
+
+<Warning>
+  Clearing all data removes all user preferences including prayer times, notifications, and customization settings. This action cannot be undone.
+</Warning>
+
+## Settings UI organization
+
+Preferences are organized across multiple settings screens:
+
+- **Appearance Settings** (`AppearanceSettingsScreen.kt`) - Theme, display, Islamic patterns
+- **Prayer Settings** (`PrayerSettingsScreen.kt`) - Calculation methods, adjustments
+- **Notification Settings** (`NotificationSettingsScreen.kt`) - Prayer alerts, adhan sounds
+- **Quran Settings** (`QuranSettingsScreen.kt`) - Translation, fonts, reading options
+- **Language Settings** (`LanguageScreen.kt`) - App language selection
+
+Each screen uses the centralized `SettingsViewModel` to manage state and persist changes.

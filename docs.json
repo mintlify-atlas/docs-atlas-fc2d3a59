@@ -1,122 +1,123 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Nimaz",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#006B54",
+    "light": "#4CAF50",
+    "dark": "#1B5E20"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/arshad-shah/Nimaz"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/arshad-shah/Nimaz"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Features",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "features/prayer-times",
+              "features/quran-reader",
+              "features/hadith-collections",
+              "features/dua-library",
+              "features/prayer-tracker"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Tools",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "tools/qibla-finder",
+              "tools/tasbih-counter",
+              "tools/zakat-calculator",
+              "tools/hijri-calendar"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Widgets",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "widgets/overview",
+              "widgets/prayer-times-widget",
+              "widgets/next-prayer-widget",
+              "widgets/hijri-date-widget",
+              "widgets/prayer-tracker-widget"
+            ]
+          },
+          {
+            "group": "Settings & Customization",
+            "pages": [
+              "customization/themes",
+              "customization/notifications",
+              "customization/languages",
+              "customization/preferences"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Development",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Architecture",
             "pages": [
-              "api-reference/introduction"
+              "development/overview",
+              "development/architecture",
+              "development/project-structure",
+              "development/dependencies"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Domain Layer",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "development/domain/models",
+              "development/domain/repositories",
+              "development/domain/use-cases"
+            ]
+          },
+          {
+            "group": "Data Layer",
+            "pages": [
+              "development/data/database",
+              "development/data/preferences",
+              "development/data/audio-manager"
+            ]
+          },
+          {
+            "group": "UI Layer",
+            "pages": [
+              "development/ui/compose-screens",
+              "development/ui/components",
+              "development/ui/theming",
+              "development/ui/navigation"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/building",
+              "development/testing"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

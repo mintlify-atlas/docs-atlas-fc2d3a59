@@ -1,0 +1,539 @@
+---
+title: Use cases
+description: Business logic and application-specific operations in the domain layer
+---
+
+Use cases encapsulate business logic and coordinate between repositories and the presentation layer. Each use case has a single responsibility and is injected into ViewModels via Hilt dependency injection.
+
+## Architecture pattern
+
+All use cases follow this pattern:
+
+```kotlin
+class UseCaseNameUseCase @Inject constructor(
+    private val repository: SomeRepository
+) {
+    operator fun invoke(params): ReturnType = repository.operation(params)
+}
+```
+
+The `operator fun invoke()` allows calling the use case as a function:
+
+```kotlin
+val result = useCaseName(params)
+```
+
+## Quran use cases
+
+Located in `QuranUseCases.kt`, these handle Quran reading, navigation, and bookmarks.
+
+### GetSurahListUseCase
+
+Retrieves the list of all 114 surahs.
+
+```kotlin
+class GetSurahListUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(): Flow<List<Surah>> = repository.getAllSurahs()
+
+    fun byRevelationType(type: RevelationType): Flow<List<Surah>> =
+        repository.getSurahsByRevelationType(type)
+
+    fun search(query: String): Flow<List<Surah>> = repository.searchSurahs(query)
+}
+```
+
+**Usage**:
+```kotlin
+// Get all surahs
+getSurahList()
+
+// Filter by revelation type
+getSurahList.byRevelationType(RevelationType.MECCAN)
+
+// Search surahs
+getSurahList.search("al-")
+```
+
+### GetSurahWithAyahsUseCase
+
+Fetches a complete surah with all its ayahs and optional translation.
+
+```kotlin
+class GetSurahWithAyahsUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(surahNumber: Int, translatorId: String? = null): Flow<SurahWithAyahs?> =
+        repository.getSurahWithAyahs(surahNumber, translatorId)
+}
+```
+
+### GetAyahsByJuzUseCase
+
+Retrieves all ayahs in a specific juz.
+
+```kotlin
+class GetAyahsByJuzUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(juzNumber: Int, translatorId: String? = null): Flow<List<Ayah>> =
+        repository.getAyahsByJuz(juzNumber, translatorId)
+}
+```
+
+### GetAyahsByPageUseCase
+
+Retrieves ayahs for a specific Quran page (mushaf page numbering).
+
+```kotlin
+class GetAyahsByPageUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(pageNumber: Int, translatorId: String? = null): Flow<List<Ayah>> =
+        repository.getAyahsByPage(pageNumber, translatorId)
+}
+```
+
+### SearchQuranUseCase
+
+Searches Quran text in Arabic or translation.
+
+```kotlin
+class SearchQuranUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(query: String, translatorId: String? = null): Flow<List<QuranSearchResult>> =
+        repository.searchQuran(query, translatorId)
+}
+```
+
+### Bookmark use cases
+
+<Accordion title="View bookmark use cases">
+```kotlin
+class ToggleQuranBookmarkUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    suspend operator fun invoke(ayahId: Int, surahNumber: Int, ayahNumber: Int) {
+        repository.toggleBookmark(ayahId, surahNumber, ayahNumber)
+    }
+}
+
+class GetQuranBookmarksUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(): Flow<List<QuranBookmark>> = repository.getAllBookmarks()
+}
+
+class IsAyahBookmarkedUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(ayahId: Int): Flow<Boolean> = repository.isAyahBookmarked(ayahId)
+}
+
+class UpdateQuranBookmarkUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    suspend operator fun invoke(bookmark: QuranBookmark) {
+        repository.updateBookmark(bookmark)
+    }
+}
+
+class DeleteQuranBookmarkUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    suspend operator fun invoke(ayahId: Int) {
+        repository.deleteBookmark(ayahId)
+    }
+}
+```
+</Accordion>
+
+### Reading progress use cases
+
+<Accordion title="View reading progress use cases">
+```kotlin
+class GetReadingProgressUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    operator fun invoke(): Flow<ReadingProgress?> = repository.getReadingProgress()
+}
+
+class UpdateReadingPositionUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    suspend operator fun invoke(surah: Int, ayah: Int, page: Int, juz: Int) {
+        repository.updateReadingPosition(surah, ayah, page, juz)
+    }
+}
+
+class IncrementAyahsReadUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    suspend operator fun invoke(count: Int) {
+        repository.incrementAyahsRead(count)
+    }
+}
+```
+</Accordion>
+
+### QuranUseCases wrapper
+
+All Quran use cases are grouped in a data class for easy injection:
+
+```kotlin
+data class QuranUseCases(
+    val getSurahList: GetSurahListUseCase,
+    val getSurahWithAyahs: GetSurahWithAyahsUseCase,
+    val getAyahsByJuz: GetAyahsByJuzUseCase,
+    val getAyahsByPage: GetAyahsByPageUseCase,
+    val getSajdaAyahs: GetSajdaAyahsUseCase,
+    val searchQuran: SearchQuranUseCase,
+    val getAvailableTranslators: GetAvailableTranslatorsUseCase,
+    val toggleBookmark: ToggleQuranBookmarkUseCase,
+    val getBookmarks: GetQuranBookmarksUseCase,
+    val isAyahBookmarked: IsAyahBookmarkedUseCase,
+    val updateBookmark: UpdateQuranBookmarkUseCase,
+    val deleteBookmark: DeleteQuranBookmarkUseCase,
+    val toggleFavorite: ToggleQuranFavoriteUseCase,
+    val getFavorites: GetQuranFavoritesUseCase,
+    val getFavoriteAyahIds: GetQuranFavoriteAyahIdsUseCase,
+    val getReadingProgress: GetReadingProgressUseCase,
+    val updateReadingPosition: UpdateReadingPositionUseCase,
+    val incrementAyahsRead: IncrementAyahsReadUseCase,
+    val getSurahInfo: GetSurahInfoUseCase,
+    val getPageAyahRanges: GetPageAyahRangesUseCase
+)
+```
+
+## Khatam use cases
+
+Located in `KhatamUseCases.kt`, these manage Quran completion goals and progress tracking.
+
+### CreateKhatamUseCase
+
+Creates a new Quran reading plan.
+
+```kotlin
+class CreateKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatam: Khatam): Long = repository.createKhatam(khatam)
+}
+```
+
+### GetActiveKhatamUseCase / ObserveActiveKhatamUseCase
+
+Retrieves the currently active khatam (one-time or reactive).
+
+```kotlin
+class GetActiveKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(): Khatam? = repository.getActiveKhatam()
+}
+
+class ObserveActiveKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    operator fun invoke(): Flow<Khatam?> = repository.observeActiveKhatam()
+}
+```
+
+### MarkAyahsReadUseCase
+
+Marks specific ayahs as read in a khatam.
+
+```kotlin
+class MarkAyahsReadUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long, ayahIds: List<Int>) = 
+        repository.markAyahsRead(khatamId, ayahIds)
+}
+```
+
+### GetJuzProgressUseCase
+
+Calculates progress across all 30 juz for a khatam.
+
+```kotlin
+class GetJuzProgressUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long): List<JuzProgressInfo> = 
+        repository.getJuzProgress(khatamId)
+}
+```
+
+### Status management use cases
+
+<Accordion title="View status management use cases">
+```kotlin
+class CompleteKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long) = repository.completeKhatam(khatamId)
+}
+
+class AbandonKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long) = repository.abandonKhatam(khatamId)
+}
+
+class ReactivateKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long) = repository.reactivateKhatam(khatamId)
+}
+
+class DeleteKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long) = repository.deleteKhatam(khatamId)
+}
+```
+</Accordion>
+
+### Observation use cases
+
+<Accordion title="View observation use cases">
+```kotlin
+class ObserveAllKhatamsUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    operator fun invoke(): Flow<List<Khatam>> = repository.observeAllKhatams()
+}
+
+class ObserveInProgressKhatamsUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    operator fun invoke(): Flow<List<Khatam>> = repository.observeInProgressKhatams()
+}
+
+class ObserveCompletedKhatamsUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    operator fun invoke(): Flow<List<Khatam>> = repository.observeCompletedKhatams()
+}
+
+class ObserveAbandonedKhatamsUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    operator fun invoke(): Flow<List<Khatam>> = repository.observeAbandonedKhatams()
+}
+```
+</Accordion>
+
+### KhatamUseCases wrapper
+
+```kotlin
+data class KhatamUseCases(
+    val createKhatam: CreateKhatamUseCase,
+    val getActiveKhatam: GetActiveKhatamUseCase,
+    val observeActiveKhatam: ObserveActiveKhatamUseCase,
+    val setActiveKhatam: SetActiveKhatamUseCase,
+    val markAyahsRead: MarkAyahsReadUseCase,
+    val getReadAyahIds: GetReadAyahIdsUseCase,
+    val observeReadAyahIds: ObserveReadAyahIdsUseCase,
+    val getJuzProgress: GetJuzProgressUseCase,
+    val observeDailyLogs: ObserveDailyLogsUseCase,
+    val completeKhatam: CompleteKhatamUseCase,
+    val abandonKhatam: AbandonKhatamUseCase,
+    val reactivateKhatam: ReactivateKhatamUseCase,
+    val deleteKhatam: DeleteKhatamUseCase,
+    val observeAllKhatams: ObserveAllKhatamsUseCase,
+    val observeInProgressKhatams: ObserveInProgressKhatamsUseCase,
+    val observeCompletedKhatams: ObserveCompletedKhatamsUseCase,
+    val observeAbandonedKhatams: ObserveAbandonedKhatamsUseCase,
+    val observeKhatamById: ObserveKhatamByIdUseCase,
+    val logDailyProgress: LogDailyProgressUseCase,
+    val getKhatamStats: GetKhatamStatsUseCase,
+    val getNextUnreadPosition: GetNextUnreadPositionUseCase,
+    val unmarkAyahRead: UnmarkAyahReadUseCase,
+    val markSurahAsRead: MarkSurahAsReadUseCase
+)
+```
+
+## Asma ul Husna use cases
+
+Located in `AsmaUlHusnaUseCases.kt`, these provide access to the 99 names of Allah.
+
+```kotlin
+class GetAllAsmaUlHusnaUseCase @Inject constructor(
+    private val repository: AsmaUlHusnaRepository
+) {
+    operator fun invoke(): Flow<List<AsmaUlHusna>> = repository.getAllNames()
+}
+
+class GetAsmaUlHusnaByNumberUseCase @Inject constructor(
+    private val repository: AsmaUlHusnaRepository
+) {
+    suspend operator fun invoke(number: Int): AsmaUlHusna? = 
+        repository.getNameByNumber(number)
+}
+
+class ToggleAsmaUlHusnaFavoriteUseCase @Inject constructor(
+    private val repository: AsmaUlHusnaRepository
+) {
+    suspend operator fun invoke(id: Int) = repository.toggleFavorite(id)
+}
+
+class SearchAsmaUlHusnaUseCase @Inject constructor(
+    private val repository: AsmaUlHusnaRepository
+) {
+    operator fun invoke(query: String): Flow<List<AsmaUlHusna>> = 
+        repository.searchNames(query)
+}
+```
+
+## Prophet use cases
+
+Located in `ProphetUseCases.kt`, these provide information about prophets.
+
+```kotlin
+class GetAllProphetsUseCase @Inject constructor(
+    private val repository: ProphetRepository
+) {
+    operator fun invoke(): Flow<List<Prophet>> = repository.getAllProphets()
+}
+
+class GetProphetByIdUseCase @Inject constructor(
+    private val repository: ProphetRepository
+) {
+    suspend operator fun invoke(id: String): Prophet? = repository.getProphetById(id)
+}
+
+class SearchProphetsUseCase @Inject constructor(
+    private val repository: ProphetRepository
+) {
+    operator fun invoke(query: String): Flow<List<Prophet>> = 
+        repository.searchProphets(query)
+}
+```
+
+## Use case injection pattern
+
+In Hilt modules, use cases are typically grouped and provided together:
+
+```kotlin
+@Module
+@InstallIn(ViewModelComponent::class)
+object DomainModule {
+    @Provides
+    fun provideQuranUseCases(
+        getSurahList: GetSurahListUseCase,
+        getSurahWithAyahs: GetSurahWithAyahsUseCase,
+        // ... other use cases
+    ): QuranUseCases {
+        return QuranUseCases(
+            getSurahList = getSurahList,
+            getSurahWithAyahs = getSurahWithAyahs,
+            // ... other use cases
+        )
+    }
+}
+```
+
+Then inject into ViewModels:
+
+```kotlin
+@HiltViewModel
+class QuranViewModel @Inject constructor(
+    private val quranUseCases: QuranUseCases
+) : ViewModel() {
+    
+    val surahs = quranUseCases.getSurahList()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+}
+```
+
+## Best practices
+
+<Accordion title="Single responsibility">
+Each use case should do one thing. Don't combine multiple repository calls in one use case unless they represent a single business operation.
+
+**Good**:
+```kotlin
+class ToggleBookmarkUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    suspend operator fun invoke(ayahId: Int, surahNumber: Int, ayahNumber: Int) {
+        repository.toggleBookmark(ayahId, surahNumber, ayahNumber)
+    }
+}
+```
+
+**Bad**:
+```kotlin
+class BookmarkAndUpdateProgressUseCase @Inject constructor(
+    private val repository: QuranRepository
+) {
+    suspend operator fun invoke(ayahId: Int, surahNumber: Int, ayahNumber: Int) {
+        repository.toggleBookmark(ayahId, surahNumber, ayahNumber)
+        repository.updateReadingPosition(surahNumber, ayahNumber, 0, 0)
+        repository.incrementAyahsRead(1)
+    }
+}
+```
+</Accordion>
+
+<Accordion title="Use Flow for reactive data">
+For data that changes over time, return `Flow` instead of suspend functions.
+
+**Good**:
+```kotlin
+class ObserveActiveKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    operator fun invoke(): Flow<Khatam?> = repository.observeActiveKhatam()
+}
+```
+
+**Bad**:
+```kotlin
+class GetActiveKhatamUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(): Khatam? = repository.getActiveKhatam()
+}
+```
+
+(Note: Both patterns exist in the codebase for one-time vs. reactive needs)
+</Accordion>
+
+<Accordion title="Keep use cases thin">
+Use cases should primarily delegate to repositories. Complex business logic should be in the repository implementation or domain models.
+
+**Good**:
+```kotlin
+class GetJuzProgressUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long): List<JuzProgressInfo> = 
+        repository.getJuzProgress(khatamId)
+}
+```
+
+**Bad** (calculation in use case):
+```kotlin
+class GetJuzProgressUseCase @Inject constructor(
+    private val repository: KhatamRepository
+) {
+    suspend operator fun invoke(khatamId: Long): List<JuzProgressInfo> {
+        val readAyahs = repository.getReadAyahIds(khatamId)
+        return (1..30).map { juzNumber ->
+            val totalAyahs = calculateJuzAyahCount(juzNumber)
+            val readCount = readAyahs.count { isInJuz(it, juzNumber) }
+            JuzProgressInfo(juzNumber, totalAyahs, readCount)
+        }
+    }
+}
+```
+</Accordion>

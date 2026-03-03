@@ -1,0 +1,222 @@
+---
+title: Installation
+description: Install Nimaz on your Android device from Google Play Store or build from source
+---
+
+# Installation
+
+Nimaz can be installed in two ways: download from the Google Play Store for the easiest experience, or build from source if you want to customize or contribute to development.
+
+## Install from Google Play Store
+
+The recommended way to install Nimaz is through the Google Play Store.
+
+<Steps>
+  <Step title="Check device compatibility">
+    Ensure your Android device is running **Android 10 (API 29) or higher**. Nimaz supports devices up to Android 15 (API 36).
+    
+    To check your Android version:
+    1. Open **Settings** on your device
+    2. Scroll down to **About phone**
+    3. Look for **Android version**
+  </Step>
+  
+  <Step title="Download from Play Store">
+    Visit the Google Play Store and search for "Nimaz" or use the direct link:
+    
+    [Download Nimaz on Google Play Store](#)
+    
+    Tap **Install** to download and install the app on your device.
+  </Step>
+  
+  <Step title="Grant required permissions">
+    When you first open Nimaz, you'll be guided through an onboarding process that requests necessary permissions:
+    
+    - **Location access** - For accurate prayer times and Qibla direction
+    - **Notification permission** - To receive prayer time alerts
+    - **Battery optimization exemption** - For reliable background notifications
+    
+    <Note>
+    These permissions are optional but highly recommended for the best experience. You can always adjust permissions later in Settings.
+    </Note>
+  </Step>
+  
+  <Step title="Start using Nimaz">
+    Once installation is complete and permissions are granted, proceed to the [Quick start guide](/quickstart) to set up your prayer times and explore features.
+  </Step>
+</Steps>
+
+## Build from source
+
+Developers and advanced users can build Nimaz from source code.
+
+### Prerequisites
+
+Before building from source, ensure you have the following installed:
+
+- **Android Studio** (latest stable version recommended)
+- **JDK 21** - Required for compilation
+- **Android SDK** with API levels 29-36
+- **Git** - For cloning the repository
+
+### Clone the repository
+
+```bash
+git clone https://github.com/yourusername/nimaz.git
+cd nimaz
+```
+
+### Project configuration
+
+The project uses Gradle with Kotlin DSL for build configuration.
+
+**Key build details:**
+
+```kotlin app/build.gradle.kts
+android {
+    namespace = "com.arshadshah.nimaz"
+    compileSdk = 36
+    
+    defaultConfig {
+        applicationId = "com.arshadshah.nimaz"
+        minSdk = 29
+        targetSdk = 36
+        versionCode = 300
+        versionName = "3.0.0"
+    }
+}
+```
+
+### Build variants
+
+Nimaz supports two build types:
+
+#### Debug build
+
+For development and testing:
+
+```bash
+./gradlew assembleDebug
+```
+
+The APK will be generated at:
+```
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+#### Release build
+
+For production deployment:
+
+<Warning>
+Release builds require signing configuration with keystore credentials. You'll need to set up environment variables for the signing config.
+</Warning>
+
+**Required environment variables:**
+
+```bash
+export KEYSTORE_FILE=/path/to/keystore.jks
+export KEYSTORE_PASSWORD=your_keystore_password
+export KEY_ALIAS=your_key_alias
+export KEY_PASSWORD=your_key_password
+```
+
+Build the release APK:
+
+```bash
+./gradlew assembleRelease
+```
+
+The release build includes:
+- **ProGuard optimization** - Code minification and obfuscation
+- **Resource shrinking** - Removes unused resources
+- **Debug symbols** - For crash reporting (SYMBOL_TABLE level)
+
+### Install on device
+
+Once built, install the APK on your device:
+
+```bash
+# Install debug build
+adb install app/build/outputs/apk/debug/app-debug.apk
+
+# Or install release build
+adb install app/build/outputs/apk/release/app-release.apk
+```
+
+### Open in Android Studio
+
+Alternatively, open the project in Android Studio:
+
+<Steps>
+  <Step title="Open project">
+    Launch Android Studio and select **Open an Existing Project**. Navigate to the cloned repository folder.
+  </Step>
+  
+  <Step title="Sync Gradle">
+    Android Studio will automatically start syncing Gradle. Wait for the sync to complete.
+  </Step>
+  
+  <Step title="Connect device or emulator">
+    Connect an Android device via USB (with USB debugging enabled) or start an Android emulator with API 29 or higher.
+  </Step>
+  
+  <Step title="Run the app">
+    Click the **Run** button (green play icon) or press `Shift + F10` to build and install the app on your device.
+  </Step>
+</Steps>
+
+## Dependencies
+
+Nimaz uses the following major libraries:
+
+| Library | Purpose |
+|---------|--------|
+| **Jetpack Compose** | Modern declarative UI framework |
+| **Hilt** | Dependency injection |
+| **Room** | Local database for offline data |
+| **DataStore** | Preferences storage |
+| **Adhan** | Prayer time calculations |
+| **WorkManager** | Background tasks and scheduling |
+| **Glance** | Home screen widgets |
+| **Media3 ExoPlayer** | Audio playback for Quran |
+| **CameraX** | Camera access for AR Qibla |
+| **Play Services Location** | Location services |
+| **Play In-App Update** | In-app update notifications |
+| **AboutLibraries** | Open source license information |
+
+## Troubleshooting
+
+### Build fails with "Unable to locate SDK"
+
+Ensure the Android SDK is properly installed and the `ANDROID_HOME` environment variable is set:
+
+```bash
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools
+```
+
+### Compilation error with Java version
+
+Nimaz requires JDK 21. Verify your Java version:
+
+```bash
+java -version
+```
+
+If needed, update Android Studio to use JDK 21:
+1. Go to **File > Project Structure**
+2. Under **SDK Location**, set the JDK location to JDK 21
+
+### App crashes on launch after building
+
+If the app crashes immediately after installation:
+
+1. Check Logcat in Android Studio for error details
+2. Verify your device meets the minimum API level (29)
+3. Ensure all required permissions are granted
+4. Try uninstalling and reinstalling the app
+
+## Next steps
+
+Once Nimaz is installed, proceed to the [Quick start guide](/quickstart) to complete setup and start using the app.

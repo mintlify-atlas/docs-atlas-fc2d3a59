@@ -1,0 +1,327 @@
+---
+title: Preferences
+description: DataStore preferences management for app settings
+---
+
+Nimaz uses [DataStore](https://developer.android.com/topic/libraries/architecture/datastore) to persist user preferences with type-safe, asynchronous storage.
+
+## PreferencesDataStore
+
+The `PreferencesDataStore` class provides centralized access to all app settings through Kotlin Flow.
+
+**Source**: `data/local/datastore/PreferencesDataStore.kt`
+
+## Preference categories
+
+### Location & prayer settings
+
+```kotlin
+val latitude: Flow<Double>
+val longitude: Flow<Double>
+val locationName: Flow<String>
+val calculationMethod: Flow<String>
+val asrMethod: Flow<String>
+val highLatitudeRule: Flow<String>
+val prayerNotificationsEnabled: Flow<Boolean>
+```
+
+Stores:
+- User location coordinates
+- Prayer time calculation methods
+- Asr juristic method (Shafi'i or Hanafi)
+- High latitude adjustment rules
+- Global notification toggle
+
+### Prayer adjustments
+
+```kotlin
+val fajrAdjustment: Flow<Int>
+val sunriseAdjustment: Flow<Int>
+val dhuhrAdjustment: Flow<Int>
+val asrAdjustment: Flow<Int>
+val maghribAdjustment: Flow<Int>
+val ishaAdjustment: Flow<Int>
+```
+
+Allows ±30 minute adjustments per prayer.
+
+### Notification settings
+
+```kotlin
+val fajrNotificationEnabled: Flow<Boolean>
+val sunriseNotificationEnabled: Flow<Boolean>
+val dhuhrNotificationEnabled: Flow<Boolean>
+val asrNotificationEnabled: Flow<Boolean>
+val maghribNotificationEnabled: Flow<Boolean>
+val ishaNotificationEnabled: Flow<Boolean>
+
+val showReminderBefore: Flow<Boolean>
+val notificationReminderMinutes: Flow<Int>
+```
+
+**Per-prayer notification toggles** plus optional pre-reminders (default 15 minutes before).
+
+### Adhan sounds
+
+```kotlin
+val adhanSound: Flow<String>
+val fajrAdhanSound: Flow<String>
+val dhuhrAdhanSound: Flow<String>
+val asrAdhanSound: Flow<String>
+val maghribAdhanSound: Flow<String>
+val ishaAdhanSound: Flow<String>
+```
+
+Supports:
+- Global adhan sound (default)
+- Per-prayer adhan overrides
+- Options: `MISHARY`, `ABDUL_BASIT`, `MAKKAH`, `SIMPLE_BEEP`
+
+### Theme & appearance
+
+```kotlin
+val themeMode: Flow<String>
+val dynamicColor: Flow<Boolean>
+val showIslamicPatterns: Flow<Boolean>
+```
+
+- **Theme modes**: `"system"`, `"light"`, `"dark"`
+- **Dynamic colors**: Material You theming on Android 12+
+- **Islamic patterns**: Decorative background patterns
+
+### Display preferences
+
+```kotlin
+val use24HourFormat: Flow<Boolean>
+val useHijriPrimary: Flow<Boolean>
+val showCountdownTimer: Flow<Boolean>
+val showQuickActions: Flow<Boolean>
+```
+
+- Time format (12h/24h)
+- Primary calendar (Hijri or Gregorian)
+- Prayer countdown visibility
+- Quick action buttons on home screen
+
+### Interaction settings
+
+```kotlin
+val hapticFeedback: Flow<Boolean>
+val animationsEnabled: Flow<Boolean>
+```
+
+- Vibration on interactions
+- UI animations toggle
+
+### Quran preferences
+
+```kotlin
+val selectedTranslation: Flow<String>
+val arabicFontSize: Flow<Float>
+val translationFontSize: Flow<Float>
+val showTransliteration: Flow<Boolean>
+val continuousReadingMode: Flow<Boolean>
+val showTajweedColors: Flow<Boolean>
+```
+
+Controls:
+- Translation language
+- Font sizes (14sp - 32sp range)
+- Transliteration display
+- Reading mode (ayah-by-ayah or continuous)
+- Tajweed color highlighting
+
+### Tasbih preferences
+
+```kotlin
+val tasbihVibration: Flow<Boolean>
+val tasbihSound: Flow<Boolean>
+```
+
+Counter feedback options.
+
+### Language
+
+```kotlin
+val appLanguage: Flow<String>
+```
+
+Supported: `"en"`, `"tr"`, `"id"`, `"ms"`, `"fr"`, `"de"`, `""` (system default)
+
+## Reading preferences
+
+```kotlin
+suspend fun <T> get(key: Preferences.Key<T>, defaultValue: T): T
+```
+
+Synchronous read (suspends until value is available):
+
+```kotlin
+val method = preferencesDataStore.calculationMethod.first()
+```
+
+Reactive read (collects updates):
+
+```kotlin
+preferencesDataStore.themeMode.collect { mode ->
+    // Update UI when preference changes
+}
+```
+
+## Writing preferences
+
+All preferences have corresponding setter functions:
+
+```kotlin
+suspend fun setLatitude(value: Double)
+suspend fun setLongitude(value: Double)
+suspend fun setCalculationMethod(value: String)
+suspend fun setThemeMode(value: String)
+// ... etc.
+```
+
+<Note>
+All write operations are suspending functions that must be called from a coroutine scope.
+</Note>
+
+### Example: Updating theme
+
+```kotlin
+class SettingsViewModel @Inject constructor(
+    private val preferencesDataStore: PreferencesDataStore
+) : ViewModel() {
+    
+    fun updateTheme(mode: ThemeMode) {
+        viewModelScope.launch {
+            val modeString = when (mode) {
+                ThemeMode.LIGHT -> "light"
+                ThemeMode.DARK -> "dark"
+                ThemeMode.SYSTEM -> "system"
+            }
+            preferencesDataStore.setThemeMode(modeString)
+        }
+    }
+}
+```
+
+**Source**: `presentation/viewmodel/SettingsViewModel.kt`
+
+## Preferences in MainActivity
+
+MainActivity reads theme and display preferences on app launch:
+
+```kotlin
+val themeModeString by preferencesDataStore.themeMode.collectAsState(initial = "system")
+val dynamicColor by preferencesDataStore.dynamicColor.collectAsState(initial = false)
+val hapticEnabled by preferencesDataStore.hapticFeedback.collectAsState(initial = true)
+val animationsEnabled by preferencesDataStore.animationsEnabled.collectAsState(initial = true)
+val use24HourFormat by preferencesDataStore.use24HourFormat.collectAsState(initial = false)
+val useHijriPrimary by preferencesDataStore.useHijriPrimary.collectAsState(initial = false)
+val showIslamicPatterns by preferencesDataStore.showIslamicPatterns.collectAsState(initial = true)
+val localeCode by preferencesDataStore.appLanguage.collectAsState(initial = "en")
+```
+
+**Source**: `MainActivity.kt:48-55`
+
+## Preferences in NimazApp
+
+On app startup, `NimazApp` reads language and notification settings:
+
+```kotlin
+private fun applySavedLocale() {
+    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        try {
+            val langCode = preferencesDataStore.appLanguage.first()
+            if (langCode.isNotEmpty() && langCode != "en") {
+                LocaleHelper.setLocale(this@NimazApp, langCode)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+private fun scheduleInitialNotifications() {
+    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        try {
+            val prefs = preferencesDataStore.userPreferences.first()
+            if (prefs.latitude != 0.0 && prefs.longitude != 0.0) {
+                // Schedule prayer notifications based on preferences
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+```
+
+**Source**: `NimazApp.kt:47-92`
+
+## Dependency injection
+
+PreferencesDataStore is provided via Hilt:
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object DataStoreModule {
+    @Provides
+    @Singleton
+    fun providePreferencesDataStore(
+        @ApplicationContext context: Context
+    ): PreferencesDataStore {
+        return PreferencesDataStore(context)
+    }
+}
+```
+
+**Source**: `core/di/DataStoreModule.kt`
+
+## Data migration
+
+If migrating from SharedPreferences:
+
+```kotlin
+val dataStore = context.createDataStore(
+    name = "nimaz_preferences",
+    migrations = listOf(
+        SharedPreferencesMigration(
+            context = context,
+            sharedPreferencesName = "old_preferences"
+        )
+    )
+)
+```
+
+<Warning>
+DataStore is asynchronous. Avoid blocking the main thread when reading preferences. Always use Flow collection or `first()` within a coroutine.
+</Warning>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use Flow collection in ViewModels">
+    ViewModels should expose preferences as StateFlow or collect them as UI state.
+
+```kotlin
+val themeMode = preferencesDataStore.themeMode
+    .stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "system"
+    )
+```
+  </Accordion>
+
+  <Accordion title="Batch writes when possible">
+    Use `edit` to batch multiple preference updates in a single transaction.
+  </Accordion>
+
+  <Accordion title="Provide sensible defaults">
+    All preferences have type-safe defaults defined in PreferencesDataStore.
+  </Accordion>
+
+  <Accordion title="Handle exceptions gracefully">
+    DataStore operations can throw IOExceptions. Wrap in try-catch blocks.
+  </Accordion>
+</AccordionGroup>

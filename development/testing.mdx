@@ -1,0 +1,575 @@
+---
+title: Testing
+description: Testing strategy, running tests, and writing new tests for Nimaz
+---
+
+Nimaz uses a comprehensive testing strategy combining unit tests, instrumented tests, and UI tests to ensure reliability and quality.
+
+## Testing overview
+
+### Test types
+
+**Unit tests** (`src/test/`)
+- Fast, isolated tests running on the JVM
+- Test business logic, ViewModels, repositories, and utilities
+- Run without Android framework dependencies
+- Frameworks: JUnit, MockK, Turbine, Coroutines Test, Truth
+
+**Instrumented tests** (`src/androidTest/`)
+- Tests running on Android devices or emulators
+- Test Android framework interactions, database, UI components
+- Frameworks: AndroidJUnit, Espresso, Compose UI Test, Hilt Testing
+
+**Lint checks**
+- Static code analysis
+- Detects potential bugs, performance issues, and style violations
+
+## Running tests
+
+### Using Android Studio
+
+<Steps>
+  <Step title="Run all unit tests">
+    Right-click on `app/src/test/` → **Run 'Tests in test'**
+  </Step>
+  
+  <Step title="Run specific test class">
+    Open the test file → Click the green play button in the gutter → **Run**
+  </Step>
+  
+  <Step title="Run single test method">
+    Click the play button next to the test method → **Run**
+  </Step>
+  
+  <Step title="Run with coverage">
+    Right-click test → **Run with Coverage** to see code coverage metrics
+  </Step>
+</Steps>
+
+### Using Gradle
+
+#### Unit tests
+
+```bash
+# Run all unit tests
+./gradlew test
+
+# Run unit tests with detailed output
+./gradlew test --info
+
+# Run tests for specific build variant
+./gradlew testDebugUnitTest
+./gradlew testReleaseUnitTest
+
+# Run specific test class
+./gradlew test --tests="com.arshadshah.nimaz.ExampleUnitTest"
+
+# Run tests matching pattern
+./gradlew test --tests="*Repository*"
+```
+
+**Test reports location:**
+```
+app/build/reports/tests/testDebugUnitTest/index.html
+```
+
+#### Instrumented tests
+
+<Warning>
+Instrumented tests require a connected Android device or running emulator.
+</Warning>
+
+```bash
+# Start an emulator first, then:
+./gradlew connectedAndroidTest
+
+# Run on specific device (if multiple connected)
+./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.arshadshah.nimaz.ExampleInstrumentedTest
+
+# Run specific test class
+./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.arshadshah.nimaz.database.PrayerDaoTest
+```
+
+**Test reports location:**
+```
+app/build/reports/androidTests/connected/index.html
+```
+
+#### Lint checks
+
+```bash
+# Run lint analysis
+./gradlew lint
+
+# Run lint and fail build on errors
+./gradlew lintDebug
+
+# Generate lint report
+./gradlew lintRelease
+```
+
+**Lint reports location:**
+```
+app/build/reports/lint-results-debug.html
+app/build/reports/lint-results-release.html
+```
+
+### Using Fastlane
+
+```bash
+# Run tests and lint together
+bundle exec fastlane android test
+
+# Run only lint
+bundle exec fastlane android lint
+```
+
+This is the same command used in CI/CD pipelines.
+
+## Writing tests
+
+### Unit test structure
+
+```kotlin
+package com.arshadshah.nimaz.domain
+
+import com.google.common.truth.Truth.assertThat
+import io.mockk.mockk
+import io.mockk.coEvery
+import kotlinx.coroutines.test.runTest
+import org.junit.Before
+import org.junit.Test
+
+class PrayerTimeCalculatorTest {
+    
+    private lateinit var calculator: PrayerTimeCalculator
+    private lateinit var locationProvider: LocationProvider
+    
+    @Before
+    fun setup() {
+        locationProvider = mockk()
+        calculator = PrayerTimeCalculator(locationProvider)
+    }
+    
+    @Test
+    fun `calculate prayer times returns five prayers`() = runTest {
+        // Given
+        val coordinates = Coordinates(latitude = 51.5074, longitude = -0.1278)
+        val date = LocalDate(2024, 1, 15)
+        
+        coEvery { locationProvider.getCurrentLocation() } returns coordinates
+        
+        // When
+        val prayerTimes = calculator.calculatePrayerTimes(date)
+        
+        // Then
+        assertThat(prayerTimes).hasSize(5)
+        assertThat(prayerTimes.map { it.name }).containsExactly(
+            "Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"
+        )
+    }
+    
+    @Test
+    fun `prayer times are in chronological order`() = runTest {
+        // Given
+        val date = LocalDate(2024, 1, 15)
+        
+        // When
+        val prayerTimes = calculator.calculatePrayerTimes(date)
+        
+        // Then
+        val times = prayerTimes.map { it.time }
+        assertThat(times).isInOrder()
+    }
+}
+```
+
+### Testing coroutines and Flows
+
+Nimaz uses `kotlinx-coroutines-test` and Turbine for testing async code:
+
+```kotlin
+import app.cash.turbine.test
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+
+class PrayerRepositoryTest {
+    
+    private val testDispatcher = StandardTestDispatcher()
+    
+    @Test
+    fun `repository emits prayer times when available`() = runTest(testDispatcher) {
+        // Given
+        val repository = PrayerRepository(dao, preferences)
+        
+        // When/Then
+        repository.getPrayerTimes().test {
+            val emission = awaitItem()
+            assertThat(emission).isNotEmpty()
+            awaitComplete()
+        }
+    }
+}
+```
+
+### Testing ViewModels
+
+```kotlin
+import androidx.lifecycle.SavedStateHandle
+import com.google.common.truth.Truth.assertThat
+import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class PrayerTimesViewModelTest {
+    
+    private val testDispatcher = StandardTestDispatcher()
+    private lateinit var viewModel: PrayerTimesViewModel
+    private lateinit var repository: PrayerRepository
+    
+    @Before
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+        repository = mockk(relaxed = true)
+        viewModel = PrayerTimesViewModel(repository, SavedStateHandle())
+    }
+    
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+    
+    @Test
+    fun `initial state is loading`() {
+        assertThat(viewModel.uiState.value).isInstanceOf(UiState.Loading::class.java)
+    }
+    
+    @Test
+    fun `load prayer times updates state to success`() = runTest(testDispatcher) {
+        // Given
+        val expectedTimes = listOf(/* ... */)
+        coEvery { repository.getPrayerTimes() } returns flowOf(expectedTimes)
+        
+        // When
+        viewModel.loadPrayerTimes()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Then
+        val state = viewModel.uiState.value
+        assertThat(state).isInstanceOf(UiState.Success::class.java)
+        assertThat((state as UiState.Success).data).isEqualTo(expectedTimes)
+    }
+}
+```
+
+### Instrumented tests
+
+#### Testing database (Room)
+
+```kotlin
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class PrayerDaoTest {
+    
+    private lateinit var database: NimazDatabase
+    private lateinit var prayerDao: PrayerDao
+    
+    @Before
+    fun setup() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(
+            context,
+            NimazDatabase::class.java
+        ).build()
+        prayerDao = database.prayerDao()
+    }
+    
+    @After
+    fun tearDown() {
+        database.close()
+    }
+    
+    @Test
+    fun insertAndRetrievePrayerTime() = runTest {
+        // Given
+        val prayerTime = PrayerTimeEntity(
+            id = 1,
+            name = "Fajr",
+            time = "05:30",
+            date = "2024-01-15"
+        )
+        
+        // When
+        prayerDao.insert(prayerTime)
+        val retrieved = prayerDao.getPrayerTimeById(1).first()
+        
+        // Then
+        assertThat(retrieved).isEqualTo(prayerTime)
+    }
+}
+```
+
+#### Testing Compose UI
+
+```kotlin
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class PrayerTimesScreenTest {
+    
+    @get:Rule
+    val composeTestRule = createComposeRule()
+    
+    @Test
+    fun prayerTimesScreen_displaysAllPrayers() {
+        // Given
+        val prayerTimes = listOf(
+            PrayerTime("Fajr", "05:30"),
+            PrayerTime("Dhuhr", "12:45"),
+            // ...
+        )
+        
+        // When
+        composeTestRule.setContent {
+            PrayerTimesScreen(prayerTimes = prayerTimes)
+        }
+        
+        // Then
+        composeTestRule.onNodeWithText("Fajr").assertIsDisplayed()
+        composeTestRule.onNodeWithText("05:30").assertIsDisplayed()
+    }
+    
+    @Test
+    fun clickingPrayer_showsDetails() {
+        // Given
+        composeTestRule.setContent {
+            PrayerTimesScreen(prayerTimes = testPrayerTimes)
+        }
+        
+        // When
+        composeTestRule.onNodeWithText("Fajr").performClick()
+        
+        // Then
+        composeTestRule.onNodeWithText("Prayer Details").assertIsDisplayed()
+    }
+}
+```
+
+### Testing with Hilt
+
+For tests requiring dependency injection:
+
+```kotlin
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.UninstallModules
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import javax.inject.Inject
+
+@HiltAndroidTest
+@UninstallModules(ProductionModule::class)
+class HiltIntegrationTest {
+    
+    @get:Rule
+    var hiltRule = HiltAndroidRule(this)
+    
+    @Inject
+    lateinit var repository: PrayerRepository
+    
+    @Before
+    fun setup() {
+        hiltRule.inject()
+    }
+    
+    @Test
+    fun testWithInjectedDependencies() {
+        // Test using injected repository
+    }
+}
+```
+
+## Test dependencies
+
+Nimaz includes these testing libraries (see `app/build.gradle.kts:143-166`):
+
+### Unit testing
+- **JUnit**: Test framework
+- **MockK**: Mocking library for Kotlin
+- **Turbine**: Flow testing library
+- **Kotlinx Coroutines Test**: Coroutine testing utilities
+- **Google Truth**: Fluent assertion library
+- **Robolectric**: Android framework simulation on JVM
+
+### Instrumented testing
+- **AndroidJUnit**: Android test runner
+- **Espresso**: UI testing framework
+- **Compose UI Test**: Jetpack Compose testing
+- **MockK Android**: Android-specific mocking
+- **Hilt Testing**: Dependency injection testing
+- **Room Testing**: Database testing utilities
+
+## CI/CD testing
+
+GitHub Actions automatically runs tests on pull requests:
+
+```yaml
+# .github/workflows/pr_checks.yml
+- name: Run Tests and Lint
+  run: bundle exec fastlane android test
+
+- name: Upload Test Results
+  uses: actions/upload-artifact@v4
+  with:
+    name: test-results
+    path: app/build/reports/tests/
+```
+
+All PRs must pass tests before merging.
+
+## Best practices
+
+### Test naming
+
+Use descriptive test names that explain the scenario:
+
+```kotlin
+// Good
+@Test
+fun `calculatePrayerTimes returns empty list when location is unavailable`()
+
+@Test
+fun `repository emits updated prayer times when database changes`()
+
+// Avoid
+@Test
+fun test1()
+
+@Test
+fun testPrayerTimes()
+```
+
+### Test structure
+
+Follow the Given-When-Then pattern:
+
+```kotlin
+@Test
+fun testExample() {
+    // Given - Set up test conditions
+    val input = "test data"
+    
+    // When - Execute the action being tested
+    val result = functionUnderTest(input)
+    
+    // Then - Verify the outcome
+    assertThat(result).isEqualTo(expectedValue)
+}
+```
+
+### Test isolation
+
+Each test should be independent:
+
+```kotlin
+@Before
+fun setup() {
+    // Fresh setup for each test
+}
+
+@After
+fun tearDown() {
+    // Clean up after each test
+}
+```
+
+### Mock external dependencies
+
+Mock network calls, location services, and other external dependencies:
+
+```kotlin
+val mockLocationProvider = mockk<LocationProvider>()
+coEvery { mockLocationProvider.getCurrentLocation() } returns testCoordinates
+```
+
+<Note>
+Use real implementations for Room database tests (in-memory database) but mock network and external services.
+</Note>
+
+## Coverage goals
+
+While Nimaz doesn't enforce strict coverage percentages, aim for:
+
+- **ViewModels**: 80%+ coverage
+- **Repositories**: 70%+ coverage  
+- **Business logic**: 80%+ coverage
+- **Utilities**: 90%+ coverage
+- **UI components**: Focus on critical user flows
+
+## Troubleshooting
+
+### Tests fail with "No such file or directory"
+
+Ensure Room schema export directory exists:
+```bash
+mkdir -p app/schemas
+```
+
+### Instrumented tests timeout
+
+Increase test timeout:
+```kotlin
+@get:Rule
+val timeout = Timeout.seconds(30)
+```
+
+### Hilt injection fails in tests
+
+Ensure you're using `@HiltAndroidTest` and calling `hiltRule.inject()`:
+```kotlin
+@Before
+fun setup() {
+    hiltRule.inject() // Must be called before accessing injected fields
+}
+```
+
+### Compose tests can't find nodes
+
+Use `composeTestRule.waitForIdle()` or `waitUntil`:
+```kotlin
+composeTestRule.waitForIdle()
+composeTestRule.onNodeWithText("Expected Text").assertIsDisplayed()
+```
+
+## Next steps
+
+- Review [Contributing guidelines](/development/contributing) for code standards
+- Check [Building from source](/development/building) for setup details
+- Explore existing tests in `app/src/test/` and `app/src/androidTest/`

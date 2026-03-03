@@ -1,0 +1,422 @@
+---
+title: Components
+description: Reusable UI components and design system in Nimaz
+---
+
+Nimaz uses an atomic design methodology to organize UI components. Components are organized into atoms, molecules, and organisms.
+
+## Component organization
+
+```
+presentation/components/
+├── atoms/          # Basic building blocks
+│   ├── NimazCard.kt
+│   ├── NimazBanner.kt
+│   ├── NimazChip.kt
+│   └── ArabicText.kt
+├── molecules/      # Combinations of atoms
+│   ├── NimazSettingsItem.kt
+│   ├── NimazMenuItem.kt
+│   └── NimazCalendar.kt
+└── organisms/      # Complex UI sections
+    ├── TopAppBar.kt
+    ├── SearchBar.kt
+    └── NimazStatsGrid.kt
+```
+
+## Atoms
+
+Atomic components are the smallest reusable UI elements.
+
+### NimazCard
+
+Card component with multiple style variants:
+
+```kotlin presentation/components/atoms/NimazCard.kt
+enum class NimazCardStyle {
+    FILLED,
+    ELEVATED,
+    OUTLINED,
+    GRADIENT
+}
+
+@Composable
+fun NimazCard(
+    modifier: Modifier = Modifier,
+    style: NimazCardStyle = NimazCardStyle.FILLED,
+    onClick: (() -> Unit)? = null,
+    shape: Shape = RoundedCornerShape(16.dp),
+    colors: CardColors = CardDefaults.cardColors(),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    // Implementation
+}
+```
+
+**Usage:**
+
+```kotlin
+NimazCard(
+    style = NimazCardStyle.OUTLINED,
+    onClick = { /* Handle click */ }
+) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Prayer Tracker")
+        Text("Track your daily prayers")
+    }
+}
+```
+
+### GradientCard
+
+Card with gradient background:
+
+```kotlin presentation/components/atoms/NimazCard.kt
+@Composable
+fun GradientCard(
+    modifier: Modifier = Modifier,
+    gradientColors: List<Color>,
+    onClick: (() -> Unit)? = null,
+    shape: Shape = RoundedCornerShape(16.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Brush.linearGradient(gradientColors))
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) 
+                else Modifier
+            )
+    ) {
+        Column(content = content)
+    }
+}
+```
+
+### NimazBanner
+
+Informational banner with variants:
+
+```kotlin presentation/components/atoms/NimazBanner.kt
+enum class NimazBannerVariant {
+    INFO,
+    WARNING,
+    UPDATE,
+    ERROR
+}
+
+@Composable
+fun NimazBanner(
+    message: String,
+    variant: NimazBannerVariant,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    title: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    isLoading: Boolean = false
+) {
+    // Renders different banner styles based on variant
+}
+```
+
+**Usage examples:**
+
+```kotlin
+// Info banner
+NimazBanner(
+    message = "Your location may be at high latitude",
+    variant = NimazBannerVariant.INFO,
+    icon = Icons.Default.Info
+)
+
+// Warning banner with action
+NimazBanner(
+    message = "Battery optimization may prevent notifications",
+    variant = NimazBannerVariant.WARNING,
+    icon = Icons.Default.BatteryAlert,
+    title = "Battery Optimization Active",
+    actionLabel = "Fix",
+    onAction = { /* Open settings */ }
+)
+
+// Update banner
+NimazBanner(
+    message = "A new version is available",
+    variant = NimazBannerVariant.UPDATE,
+    actionLabel = "Update",
+    onAction = { /* Start update */ }
+)
+```
+
+### ArabicText
+
+Specialized component for rendering Arabic text with proper styling:
+
+```kotlin
+enum class ArabicTextSize {
+    SMALL,
+    MEDIUM,
+    LARGE
+}
+
+@Composable
+fun ArabicText(
+    text: String,
+    size: ArabicTextSize = ArabicTextSize.MEDIUM,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier
+) {
+    // Uses Amiri font family with appropriate sizing
+}
+```
+
+## Molecules
+
+Molecules combine atoms into more complex components.
+
+### NimazSettingsItem
+
+Standard settings row with multiple variants:
+
+```kotlin presentation/components/molecules/NimazSettingsItem.kt
+@Composable
+fun NimazSettingsItem(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    value: String? = null,
+    checked: Boolean? = null,
+    onCheckedChange: ((Boolean) -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+    showArrow: Boolean = false,
+    trailingContent: (@Composable () -> Unit)? = null
+) {
+    // Flexible settings item with icon, text, and trailing content
+}
+```
+
+**Usage examples:**
+
+```kotlin
+// Navigation item
+NimazSettingsItem(
+    title = "Calculation Method",
+    subtitle = "Prayer time calculation",
+    icon = Icons.Default.Notifications,
+    onClick = { /* Navigate */ }
+)
+
+// Toggle item
+NimazSettingsItem(
+    title = "Haptic Feedback",
+    subtitle = "Vibration on interactions",
+    checked = true,
+    onCheckedChange = { enabled -> /* Update setting */ }
+)
+
+// Value display item
+NimazSettingsItem(
+    title = "High Latitude Method",
+    value = "Middle of the Night",
+    onClick = { /* Show options */ }
+)
+```
+
+### NimazMenuItem
+
+Menu item for navigation:
+
+```kotlin
+@Composable
+fun NimazMenuItem(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    badge: String? = null
+) {
+    // Menu item with icon, title, optional subtitle and badge
+}
+```
+
+### NimazEmptyState
+
+Empty state placeholder:
+
+```kotlin
+@Composable
+fun NimazEmptyState(
+    message: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    // Centered empty state with optional action
+}
+```
+
+## Organisms
+
+Organisms are complex, feature-specific components.
+
+### NimazTopAppBar
+
+Standard top app bar:
+
+```kotlin presentation/components/organisms/TopAppBar.kt
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NimazTopAppBar(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    navigationIcon: @Composable (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+    scrollBehavior: TopAppBarScrollBehavior? = null
+) {
+    TopAppBar(
+        title = {
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        navigationIcon = navigationIcon ?: {},
+        actions = actions,
+        scrollBehavior = scrollBehavior
+    )
+}
+```
+
+### NimazBackTopAppBar
+
+Top app bar with back navigation:
+
+```kotlin presentation/components/organisms/TopAppBar.kt
+@Composable
+fun NimazBackTopAppBar(
+    title: String,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    NimazTopAppBar(
+        title = title,
+        subtitle = subtitle,
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Navigate back"
+                )
+            }
+        },
+        actions = actions
+    )
+}
+```
+
+## Prayer-specific components
+
+### Prayer colors
+
+Each prayer time has dedicated colors:
+
+```kotlin
+private fun getPrayerColor(prayerType: PrayerType?): Color {
+    return when (prayerType) {
+        PrayerType.FAJR -> Color(0xFF6366F1)      // Indigo
+        PrayerType.SUNRISE -> Color(0xFFF59E0B)   // Amber
+        PrayerType.DHUHR -> Color(0xFFEAB308)     // Yellow
+        PrayerType.ASR -> Color(0xFFF97316)       // Orange
+        PrayerType.MAGHRIB -> Color(0xFFEF4444)   // Red
+        PrayerType.ISHA -> Color(0xFF8B5CF6)      // Violet
+        else -> MaterialTheme.colorScheme.primary
+    }
+}
+```
+
+### PrayerCard
+
+Gradient card for prayer times:
+
+```kotlin
+@Composable
+fun PrayerCard(
+    modifier: Modifier = Modifier,
+    primaryColor: Color,
+    secondaryColor: Color,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    GradientCard(
+        modifier = modifier,
+        gradientColors = listOf(primaryColor, secondaryColor),
+        onClick = onClick,
+        content = content
+    )
+}
+```
+
+## Design tokens
+
+Components use design tokens for consistency:
+
+```kotlin presentation/theme/Shape.kt
+object NimazCornerRadius {
+    val ExtraSmall = 4.dp
+    val Small = 8.dp
+    val Medium = 12.dp
+    val Large = 16.dp
+    val ExtraLarge = 20.dp
+}
+
+object NimazSpacing {
+    val ExtraSmall = 4.dp
+    val Small = 8.dp
+    val Medium = 12.dp
+    val Large = 16.dp
+    val ExtraLarge = 24.dp
+    val XXLarge = 32.dp
+}
+
+object NimazIconSize {
+    val ExtraSmall = 16.dp
+    val Small = 20.dp
+    val Medium = 24.dp
+    val Large = 32.dp
+    val ExtraLarge = 48.dp
+}
+```
+
+## Component guidelines
+
+1. **Prefer composition over inheritance**: Build complex components from simpler ones
+2. **Use Material 3 components**: Extend Material 3 components when possible
+3. **Include previews**: Every component should have preview functions
+4. **Support theming**: Use theme colors and typography
+5. **Modifiers first**: Accept `modifier` as the first optional parameter
+
+## Related
+
+- [Compose screens](/development/ui/compose-screens) - Screen organization
+- [Theming](/development/ui/theming) - Theme system
+- [Navigation](/development/ui/navigation) - Navigation patterns

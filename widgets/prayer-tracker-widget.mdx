@@ -1,0 +1,468 @@
+---
+title: Prayer tracker widget
+description: Interactive widget to track and check off your daily prayers directly from your Android home screen
+---
+
+The Prayer Tracker widget provides an interactive way to track your daily prayers directly from your home screen. Tap each prayer to mark it as completed, with visual feedback and progress tracking.
+
+## Features
+
+- **Interactive checkboxes** for all five daily prayers
+- **Tap to toggle** prayer completion status
+- **Live progress counter** showing completed prayers (e.g., "3/5")
+- **Visual feedback** with color changes when prayers are marked complete
+- **Syncs with app** - updates reflect in the main prayer tracking feature
+- **Daily reset** - automatically clears at midnight for the new day
+
+## Widget appearance
+
+The widget displays:
+
+### Header row
+
+- **Left**: Date label (e.g., "Today")
+- **Right**: Progress counter (e.g., "3/5")
+
+### Prayer checkboxes
+
+A horizontal row of five interactive circles:
+
+- **Fajr** (F)
+- **Dhuhr** (D)
+- **Asr** (A)
+- **Maghrib** (M)
+- **Isha** (I)
+
+Each prayer shows:
+- Circle with checkmark when completed
+- Empty circle when not yet prayed
+- Short letter label below the circle
+
+<Note>
+This is the only fully interactive widget in Nimaz. Other widgets are read-only displays that open the app when tapped.
+</Note>
+
+## Adding the widget
+
+<Steps>
+  <Step title="Open widget picker">
+    Long-press on your home screen and select "Widgets".
+  </Step>
+  
+  <Step title="Find Prayer Tracker">
+    Scroll to Nimaz and locate the "Prayer Tracker" widget.
+  </Step>
+  
+  <Step title="Place on home screen">
+    Drag the widget to your preferred location. It's optimized for small horizontal layouts.
+  </Step>
+  
+  <Step title="Start tracking">
+    Tap any prayer circle to mark it as completed. The progress counter will update immediately.
+  </Step>
+</Steps>
+
+## Using the widget
+
+### Marking prayers as completed
+
+1. After praying, tap the corresponding prayer circle
+2. The circle fills with color and shows a checkmark (✓)
+3. The progress counter increments (e.g., "2/5" → "3/5")
+4. The prayer label becomes bold to indicate completion
+
+### Unmarking prayers
+
+1. Tap a completed prayer circle
+2. The checkmark disappears and circle becomes empty
+3. The progress counter decrements
+4. Useful for accidental taps
+
+### Visual states
+
+**Unchecked prayer**:
+- Light gray circle background
+- No checkmark
+- Dimmed label text
+- Regular font weight
+
+**Checked prayer**:
+- Green circle background (configurable via theme)
+- White checkmark (✓)
+- Bold label text
+- Primary text color
+
+## Implementation details
+
+### Interactive widget
+
+Unlike other widgets, the Prayer Tracker handles clicks on individual UI elements:
+
+```kotlin
+Column(
+    modifier = modifier.clickable {
+        // Toggle prayer status
+        togglePrayerStatus(context, prayerName.lowercase())
+    },
+    horizontalAlignment = Alignment.CenterHorizontally
+) {
+    // Checkbox circle
+    Box(
+        modifier = GlanceModifier
+            .size(28.dp)
+            .cornerRadius(14.dp)
+            .background(if (isPrayed) checkedColor else uncheckedColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = if (isPrayed) "✓" else "",
+            style = TextStyle(...)
+        )
+    }
+    
+    Text(shortName, style = TextStyle(...))
+}
+```
+
+See widget/prayertracker/PrayerTrackerWidget.kt:227 for the checkbox implementation.
+
+### Toggle prayer status
+
+Clicking a prayer triggers database updates:
+
+```kotlin
+private fun togglePrayerStatus(context: Context, prayerName: String) {
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                WidgetEntryPoint::class.java
+            )
+            val prayerDao = entryPoint.prayerDao()
+            
+            val today = LocalDate.now()
+            val todayEpoch = today.toEpochDay() * 86400000L
+            
+            // Get current record
+            val currentRecord = prayerDao.getPrayerRecord(todayEpoch, prayerName)
+            val currentStatus = currentRecord?.status ?: "not_prayed"
+            val newStatus = if (currentStatus == "prayed") "not_prayed" else "prayed"
+            val prayedAt = if (newStatus == "prayed") System.currentTimeMillis() else null
+            
+            if (currentRecord != null) {
+                prayerDao.updatePrayerStatus(
+                    date = todayEpoch,
+                    prayerName = prayerName,
+                    status = newStatus,
+                    prayedAt = prayedAt,
+                    isJamaah = false
+                )
+            } else {
+                prayerDao.insertPrayerRecord(...)
+            }
+            
+            // Trigger widget update
+            PrayerTrackerWorker.enqueueImmediateWork(context)
+        } catch (e: Exception) {
+            Log.e("PrayerTrackerWidget", "Failed to toggle prayer status", e)
+        }
+    }
+}
+```
+
+See widget/prayertracker/PrayerTrackerWidget.kt:266 for the toggle implementation.
+
+### Widget state
+
+<CodeGroup>
+```kotlin Loading
+data object Loading : PrayerTrackerWidgetState
+// Shows loading indicator
+```
+
+```kotlin Success
+data class Success(val data: PrayerTrackerData) : PrayerTrackerWidgetState
+
+data class PrayerTrackerData(
+    val dateLabel: String = "",
+    val fajr: Boolean = false,
+    val dhuhr: Boolean = false,
+    val asr: Boolean = false,
+    val maghrib: Boolean = false,
+    val isha: Boolean = false,
+    val prayedCount: Int = 0,
+    val totalCount: Int = 5
+)
+```
+
+```kotlin Error
+data class Error(val message: String?) : PrayerTrackerWidgetState
+// Shows error with "Tap to retry" message
+```
+</CodeGroup>
+
+See widget/prayertracker/PrayerTrackerWidgetState.kt:6 for state definitions.
+
+### Widget receiver
+
+```kotlin
+class PrayerTrackerWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = PrayerTrackerWidget()
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        PrayerTrackerWorker.enqueuePeriodicWork(context, force = true)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        PrayerTrackerWorker.cancel(context)
+    }
+}
+```
+
+See widget/prayertracker/PrayerTrackerWidget.kt:315 for the receiver.
+
+## Database integration
+
+The widget directly interacts with the app's Room database:
+
+### Hilt entry point
+
+Accesses the prayer DAO through Hilt:
+
+```kotlin
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WidgetEntryPoint {
+    fun prayerDao(): PrayerDao
+}
+```
+
+See widget/WidgetEntryPoint.kt:8 for the entry point.
+
+### Prayer records
+
+Each prayer tap creates or updates a `PrayerRecordEntity`:
+
+```kotlin
+data class PrayerRecordEntity(
+    val date: Long,              // Day epoch
+    val prayerName: String,      // "fajr", "dhuhr", etc.
+    val scheduledTime: Long,     // When prayer was due
+    val status: String,          // "prayed" or "not_prayed"
+    val prayedAt: Long?,         // Timestamp when marked complete
+    val isJamaah: Boolean,       // False for widget tracking
+    val isQadaFor: String?,      // Null for current prayers
+    val note: String?            // Optional note
+)
+```
+
+### Sync with main app
+
+Prayers marked complete in the widget:
+- Appear in the app's prayer tracker screen
+- Count toward daily/weekly statistics
+- Are included in prayer analytics
+- Can be modified later in the app (e.g., marking as jamaah)
+
+## Update lifecycle
+
+The widget updates through two mechanisms:
+
+### Periodic background updates
+
+`PrayerTrackerWorker` refreshes widget data:
+- Runs periodically to check for new day
+- Updates prayer status from database
+- Resets progress counter at midnight
+
+### Immediate updates after interaction
+
+When a prayer is toggled:
+1. Database is updated immediately
+2. `PrayerTrackerWorker.enqueueImmediateWork()` is called
+3. Widget refreshes within seconds
+4. New state is displayed
+
+This provides instant visual feedback for user interactions.
+
+## Styling
+
+### Colors
+
+```kotlin
+val backgroundColor = ColorProvider(R.color.widget_background)
+val textColor = ColorProvider(R.color.widget_text)
+val textSecondary = ColorProvider(R.color.widget_text_secondary)
+val primaryColor = ColorProvider(R.color.widget_primary)
+val checkedColor = ColorProvider(R.color.widget_checked)
+val uncheckedColor = ColorProvider(R.color.widget_unchecked)
+```
+
+### Checkbox styling
+
+- **Size**: 28dp diameter circles
+- **Border radius**: 14dp (perfect circles)
+- **Checkmark**: Unicode ✓ character
+- **Font**: System default, bold weight
+
+### Progress counter
+
+- **Format**: "X/5" where X is completed prayers
+- **Color**: Primary accent color
+- **Font**: 12sp, bold
+
+## Android manifest registration
+
+```xml
+<receiver
+    android:name=".widget.prayertracker.PrayerTrackerWidgetReceiver"
+    android:exported="true"
+    android:label="@string/widget_prayer_tracker_name">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/prayer_tracker_widget_info" />
+</receiver>
+```
+
+## Daily reset behavior
+
+At midnight:
+
+1. `PrayerTrackerWorker` detects the date change
+2. Widget state is updated with new date
+3. All prayer checkboxes reset to unchecked
+4. Progress counter resets to "0/5"
+5. Previous day's data is preserved in database
+
+This ensures each day starts fresh while maintaining historical tracking.
+
+## Troubleshooting
+
+### Taps not registering
+
+If tapping prayers doesn't work:
+
+**Solution**:
+1. Ensure you're tapping the circle itself, not the label
+2. Wait a moment for the update to process
+3. Check battery optimization isn't too aggressive
+4. Remove and re-add the widget if needed
+
+### Progress counter not updating
+
+If the counter doesn't increment after marking prayers:
+
+**Solution**:
+1. Wait a few seconds for the update to complete
+2. Check that background data is enabled for Nimaz
+3. Verify the app has database access
+4. Restart the app and check again
+
+### Status not syncing with app
+
+If widget and app show different prayer statuses:
+
+**Solution**:
+1. Open the app to trigger a sync
+2. Wait for the next automatic update cycle
+3. Check that both widget and app are on the same date
+4. Force refresh by removing and re-adding widget
+
+### Widget showing wrong date
+
+If the widget displays yesterday's prayers:
+
+**Solution**:
+1. Check your device date and time settings
+2. Verify timezone is correct
+3. Tap the widget to open the app and force refresh
+4. Wait for midnight transition to complete
+
+### All prayers marked but counter shows less
+
+Rare edge case with state inconsistency:
+
+**Solution**:
+1. Open the main app
+2. Navigate to prayer tracker screen
+3. Verify which prayers are actually marked
+4. Widget will sync on next update
+
+## Use cases
+
+### Daily tracking
+
+Use the widget to:
+- Quickly mark prayers as you complete them
+- See at a glance which prayers remain
+- Track your daily progress
+- Build a consistent prayer habit
+
+### Motivation
+
+The visible progress counter:
+- Provides positive reinforcement
+- Creates a sense of accomplishment
+- Encourages completing all five prayers
+- Makes tracking effortless
+
+### Home screen integration
+
+Benefits of widget-based tracking:
+- No need to open the app
+- Always visible reminder
+- One-tap interaction
+- Faster than app-based tracking
+
+## Privacy considerations
+
+The widget displays prayer status on your home screen:
+
+- **Visible to others**: Anyone seeing your screen can see your prayer status
+- **Lock screen**: Widget doesn't appear on lock screen by default
+- **Screenshots**: Prayer status may appear in screenshots
+
+<Note>
+If you prefer privacy, use the in-app prayer tracker instead of the widget, or place the widget on a secondary home screen page.
+</Note>
+
+## Accessibility
+
+The widget follows accessibility guidelines:
+
+- **Touch targets**: 28dp circles exceed minimum 48dp touch target (with padding)
+- **Color contrast**: High contrast between checked/unchecked states
+- **Visual feedback**: Clear checkmark indication
+- **Labels**: Text labels identify each prayer
+
+## Related features
+
+### In-app prayer tracker
+
+The main app provides:
+- Detailed prayer tracking with notes
+- Jamaah (congregation) marking
+- Historical data and statistics
+- Qada prayer tracking
+- Custom prayer notes
+
+The widget provides a simplified interface for quick daily tracking.
+
+### Prayer statistics
+
+Data tracked via the widget feeds into:
+- Weekly prayer completion percentages
+- Monthly tracking calendars
+- Streak tracking
+- Prayer analytics
+
+## Related widgets
+
+- [Prayer times widget](/widgets/prayer-times-widget) - See prayer times with countdown
+- [Next prayer widget](/widgets/next-prayer-widget) - Focus on upcoming prayer
+- [Hijri date widget](/widgets/hijri-date-widget) - Track Islamic calendar dates

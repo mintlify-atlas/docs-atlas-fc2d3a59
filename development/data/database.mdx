@@ -1,0 +1,302 @@
+---
+title: Database
+description: Room database architecture with entities and DAOs
+---
+
+Nimaz uses [Room](https://developer.android.com/training/data-storage/room) as its local database solution, providing a robust SQLite abstraction layer for offline data storage.
+
+## Database overview
+
+The `NimazDatabase` is the central database class containing 34 entities and 14 DAOs, organized by feature area.
+
+```kotlin
+@Database(
+    entities = [
+        // Quran (7 entities)
+        SurahEntity::class,
+        AyahEntity::class,
+        TranslationEntity::class,
+        QuranBookmarkEntity::class,
+        QuranFavoriteEntity::class,
+        ReadingProgressEntity::class,
+        SurahInfoEntity::class,
+        // ... 27 more entities
+    ],
+    version = 10,
+    exportSchema = true
+)
+abstract class NimazDatabase : RoomDatabase() {
+    // 14 DAOs for data access
+}
+```
+
+**Source**: `data/local/database/NimazDatabase.kt:56-108`
+
+<Note>
+The database version is 10, with schema exports stored in `app/schemas/` for migration tracking.
+</Note>
+
+## Entities by feature
+
+### Quran entities (7)
+
+<AccordionGroup>
+  <Accordion title="SurahEntity - Surah metadata">
+    Stores information about each Surah (chapter) including name in Arabic and English, revelation type, ayah count, and ordering.
+
+```kotlin
+@Entity(tableName = "surahs")
+data class SurahEntity(
+    @PrimaryKey val number: Int,
+    val nameArabic: String,
+    val nameEnglish: String,
+    val nameTransliteration: String,
+    val revelationType: String,
+    val ayahCount: Int,
+    val juzStart: Int,
+    val orderInMushaf: Int
+)
+```
+  </Accordion>
+
+  <Accordion title="AyahEntity - Quranic verses">
+    Contains the full text of every Quranic verse with positioning metadata (Juz, Hizb, Rub, Page) and Sajdah information.
+
+```kotlin
+@Entity(tableName = "ayahs")
+data class AyahEntity(
+    @PrimaryKey val id: Int,
+    val surahNumber: Int,
+    val ayahNumber: Int,
+    val textArabic: String,
+    val textSimple: String,
+    val juzNumber: Int,
+    val hizbNumber: Int,
+    val rubNumber: Int,
+    val pageNumber: Int,
+    val sajdaType: String?,
+    val sajdaNumber: Int?
+)
+```
+  </Accordion>
+
+  <Accordion title="TranslationEntity - Ayah translations">
+    Stores translations in multiple languages. Each translation is linked to an ayah and translator.
+  </Accordion>
+
+  <Accordion title="QuranBookmarkEntity - Bookmarked verses">
+    User bookmarks with notes, color tags, and timestamps.
+  </Accordion>
+
+  <Accordion title="QuranFavoriteEntity - Favorite surahs">
+    Quick access to frequently read surahs.
+  </Accordion>
+
+  <Accordion title="ReadingProgressEntity - Reading history">
+    Tracks last read position and reading session history.
+  </Accordion>
+
+  <Accordion title="SurahInfoEntity - Extended surah information">
+    Additional details like themes, key verses, and recitation info.
+  </Accordion>
+</AccordionGroup>
+
+### Hadith entities (3)
+
+- **HadithBookEntity**: Six major hadith books (Bukhari, Muslim, Abu Dawud, etc.)
+- **HadithEntity**: Individual hadiths with Arabic text, translation, narrator chain, and grading
+- **HadithBookmarkEntity**: Bookmarked hadiths with notes
+
+### Dua entities (4)
+
+- **DuaCategoryEntity**: 12 dua categories (Morning, Evening, Prayer, etc.)
+- **DuaEntity**: Complete duas with Arabic, transliteration, translation, and source
+- **DuaBookmarkEntity**: Favorite duas
+- **DuaProgressEntity**: Tracks daily dua completion
+
+### Prayer & Fasting entities (3)
+
+- **PrayerRecordEntity**: Prayer tracking with status, timing, and Jamaah info
+- **FastRecordEntity**: Fasting records with Suhoor/Iftar times
+- **MakeupFastEntity**: Qada fast tracking
+
+### Tasbih entities (2)
+
+- **TasbihPresetEntity**: Counter presets with target counts
+- **TasbihSessionEntity**: Tasbih session history
+
+### Zakat entity (1)
+
+- **ZakatHistoryEntity**: Saved zakat calculations with assets and liabilities
+
+### Tafseer entities (3)
+
+- **TafseerTextEntity**: Quranic commentary text
+- **TafseerHighlightEntity**: User highlights in tafseer
+- **TafseerNoteEntity**: Personal notes on verses
+
+### Khatam entities (3)
+
+- **KhatamEntity**: Quran completion goals with progress tracking
+- **KhatamAyahEntity**: Individual ayah completion records
+- **KhatamDailyLogEntity**: Daily reading statistics
+
+### Islamic Names entities (6)
+
+- **AsmaUlHusnaEntity**: 99 Names of Allah
+- **AsmaUlHusnaBookmarkEntity**: Bookmarked names
+- **AsmaUnNabiEntity**: Names of Prophet Muhammad (PBUH)
+- **AsmaUnNabiBookmarkEntity**: Bookmarked prophet names
+- **ProphetEntity**: Stories of 25 prophets
+- **ProphetBookmarkEntity**: Bookmarked prophet stories
+
+### Other entities (2)
+
+- **LocationEntity**: Saved prayer time locations
+- **IslamicEventEntity**: Islamic calendar events (13 major events)
+
+## Data Access Objects (DAOs)
+
+Nimaz provides 14 DAOs for type-safe database operations:
+
+```kotlin
+abstract class NimazDatabase : RoomDatabase() {
+    abstract fun quranDao(): QuranDao
+    abstract fun hadithDao(): HadithDao
+    abstract fun duaDao(): DuaDao
+    abstract fun prayerDao(): PrayerDao
+    abstract fun fastingDao(): FastingDao
+    abstract fun tasbihDao(): TasbihDao
+    abstract fun locationDao(): LocationDao
+    abstract fun islamicEventDao(): IslamicEventDao
+    abstract fun zakatDao(): ZakatDao
+    abstract fun tafseerDao(): TafseerDao
+    abstract fun khatamDao(): KhatamDao
+    abstract fun asmaUlHusnaDao(): AsmaUlHusnaDao
+    abstract fun asmaUnNabiDao(): AsmaUnNabiDao
+    abstract fun prophetDao(): ProphetDao
+}
+```
+
+**Source**: `data/local/database/NimazDatabase.kt:109-123`
+
+### DAO capabilities
+
+All DAOs provide:
+- **Flow-based queries** for reactive UI updates
+- **Suspend functions** for coroutine-based operations
+- **Comprehensive CRUD operations** (Create, Read, Update, Delete)
+- **Complex queries** with joins and aggregations
+
+<Accordion title="Example: QuranDao">
+```kotlin
+@Dao
+interface QuranDao {
+    // Reactive queries
+    @Query("SELECT * FROM surahs ORDER BY number")
+    fun getAllSurahsFlow(): Flow<List<SurahEntity>>
+
+    @Query("SELECT * FROM ayahs WHERE surahNumber = :surahNumber")
+    fun getAyahsBySurahFlow(surahNumber: Int): Flow<List<AyahEntity>>
+
+    // Suspend operations
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmark(bookmark: QuranBookmarkEntity)
+
+    @Delete
+    suspend fun deleteBookmark(bookmark: QuranBookmarkEntity)
+
+    // Complex queries
+    @Query("""
+        SELECT a.* FROM ayahs a
+        INNER JOIN quran_bookmarks b ON a.id = b.ayahId
+        ORDER BY b.createdAt DESC
+    """)
+    fun getBookmarkedAyahsFlow(): Flow<List<AyahEntity>>
+}
+```
+</Accordion>
+
+## Database migrations
+
+Nimaz maintains database schema compatibility through Room migrations.
+
+### Migration 9 → 10
+Added Asma ul Husna, Asma un Nabi, and Prophet entities with their bookmark tables.
+
+**Source**: `data/local/database/NimazDatabase.kt:127-216`
+
+### Migration 8 → 9  
+Added Khatam tracking tables with daily log and ayah completion records.
+
+**Source**: `data/local/database/NimazDatabase.kt:218-270`
+
+<Warning>
+Always test migrations thoroughly. Schema exports in `app/schemas/` help validate migration correctness.
+</Warning>
+
+## Database initialization
+
+The database is provided via Hilt dependency injection:
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+    @Provides
+    @Singleton
+    fun provideNimazDatabase(
+        @ApplicationContext context: Context
+    ): NimazDatabase {
+        return Room.databaseBuilder(
+            context,
+            NimazDatabase::class.java,
+            NimazDatabase.DATABASE_NAME
+        )
+        .addMigrations(
+            NimazDatabase.MIGRATION_7_8,
+            NimazDatabase.MIGRATION_8_9
+        )
+        .build()
+    }
+}
+```
+
+**Source**: `core/di/DatabaseModule.kt`
+
+## Schema export
+
+Room generates JSON schema files for each version:
+
+```
+app/schemas/
+  com.arshadshah.nimaz.data.local.database.NimazDatabase/
+    8.json
+    9.json
+    10.json
+```
+
+These files are used for:
+- Migration testing
+- Schema version tracking
+- Documentation of database structure
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use Flow for UI-bound data">
+    DAOs return `Flow<T>` for data that updates the UI. This ensures automatic updates when the database changes.
+  </Accordion>
+
+  <Accordion title="Use suspend functions for one-time operations">
+    For inserts, updates, and deletes that don't need reactive updates, use suspend functions.
+  </Accordion>
+
+  <Accordion title="Leverage indices for query performance">
+    All foreign keys and frequently queried columns have indices defined in entity classes.
+  </Accordion>
+
+  <Accordion title="Test migrations thoroughly">
+    Use Room's migration testing utilities to validate schema changes don't break existing data.
+  </Accordion>
+</AccordionGroup>

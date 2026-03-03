@@ -1,0 +1,396 @@
+---
+title: Hijri date widget
+description: Display today's Hijri (Islamic) date on your Android home screen with Gregorian date reference
+---
+
+The Hijri Date widget displays the current Islamic calendar date on your home screen, helping you stay connected with the Islamic calendar throughout the day.
+
+## Features
+
+- **Large day number** display for easy reading
+- **Hijri month and year** in clear text
+- **Gregorian date reference** for context
+- **Day of week** label
+- **Automatic updates** at midnight
+- **Respects date adjustments** configured in the app
+
+## Widget appearance
+
+The widget displays dates in a vertically centered format:
+
+```
+     Tuesday
+     
+       15
+   Ramadan 1446
+   
+  March 14, 2026
+```
+
+### Display elements
+
+1. **Gregorian day of week** (top, small text)
+2. **Hijri day** (large, prominent number)
+3. **Hijri month and year** (medium text)
+4. **Gregorian date** (bottom, small text)
+
+<Note>
+The widget automatically applies any Hijri date adjustments you've configured in the app, such as offset days for moon sighting variations.
+</Note>
+
+## Adding the widget
+
+<Steps>
+  <Step title="Access widget picker">
+    Long-press on your home screen and select "Widgets".
+  </Step>
+  
+  <Step title="Find Hijri Date widget">
+    Scroll to the Nimaz app section and locate the "Hijri Date" widget.
+  </Step>
+  
+  <Step title="Place widget">
+    Drag the widget to your home screen. It works well in small to medium widget slots.
+  </Step>
+  
+  <Step title="Verify display">
+    The widget should immediately show today's Hijri date. If it shows "Loading...", it will update momentarily.
+  </Step>
+</Steps>
+
+## Implementation details
+
+### Widget class
+
+The widget is implemented using Jetpack Glance:
+
+```kotlin
+class HijriDateWidget : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<HijriDateWidgetState> =
+        HijriDateStateDefinition
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            GlanceTheme {
+                val state = currentState<HijriDateWidgetState>()
+                HijriDateContent(state)
+            }
+        }
+    }
+}
+```
+
+See widget/hijridate/HijriDateWidget.kt:35 for the full implementation.
+
+### Widget state
+
+The widget manages three states:
+
+<CodeGroup>
+```kotlin Loading
+data object Loading : HijriDateWidgetState
+// Shows circular progress indicator
+```
+
+```kotlin Success
+data class Success(val data: HijriDateData) : HijriDateWidgetState
+
+data class HijriDateData(
+    val hijriDay: Int = 1,
+    val hijriMonth: String = "",
+    val hijriYear: Int = 1446,
+    val gregorianDayOfWeek: String = "",
+    val gregorianDate: String = ""
+)
+```
+
+```kotlin Error
+data class Error(val message: String?) : HijriDateWidgetState
+// Shows "Tap to refresh" message
+```
+</CodeGroup>
+
+See widget/hijridate/HijriDateWidgetState.kt:6 for state definitions.
+
+### Widget UI composition
+
+The success state creates a centered, vertical layout:
+
+```kotlin
+Column(
+    modifier = GlanceModifier
+        .fillMaxSize()
+        .background(backgroundColor)
+        .cornerRadius(16.dp)
+        .clickable(actionStartActivity<MainActivity>())
+        .padding(12.dp),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalAlignment = Alignment.CenterVertically
+) {
+    // Gregorian day of week
+    Text(
+        text = data.gregorianDayOfWeek,
+        style = TextStyle(
+            color = textSecondary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
+        )
+    )
+    
+    Spacer(modifier = GlanceModifier.defaultWeight())
+    
+    // Hijri day (large)
+    Text(
+        text = data.hijriDay.toString(),
+        style = TextStyle(
+            color = primaryColor,
+            fontSize = 42.sp,
+            fontWeight = FontWeight.Bold
+        )
+    )
+    
+    // Hijri month and year
+    Text(
+        text = "${data.hijriMonth} ${data.hijriYear}",
+        style = TextStyle(
+            color = textColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+    )
+    
+    Spacer(modifier = GlanceModifier.defaultWeight())
+    
+    // Gregorian date
+    Text(
+        text = data.gregorianDate,
+        style = TextStyle(color = textSecondary, fontSize = 11.sp)
+    )
+}
+```
+
+See widget/hijridate/HijriDateWidget.kt:114 for the UI composition.
+
+### Update lifecycle
+
+The widget updates automatically through `HijriDateWorker`:
+
+```kotlin
+class HijriDateWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = HijriDateWidget()
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        HijriDateWorker.enqueuePeriodicWork(context, force = true)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        HijriDateWorker.cancel(context)
+    }
+}
+```
+
+See widget/hijridate/HijriDateWidget.kt:162 for the receiver implementation.
+
+### Periodic updates
+
+The widget uses WorkManager for daily updates:
+
+- **Update frequency**: Checks for date changes periodically
+- **Midnight updates**: Automatically refreshes when the day changes
+- **Battery efficient**: Uses WorkManager's optimized scheduling
+- **Respects doze mode**: Updates when device wakes
+
+## Hijri date calculation
+
+The widget displays Hijri dates calculated by the app using:
+
+1. **Astronomical calculations**: Based on moon phases and position
+2. **User adjustments**: Any offset configured in app settings
+3. **Local timezone**: Converted to user's local time
+
+### Date adjustments
+
+Users can adjust the Hijri date in the app settings to match:
+- Local moon sighting declarations
+- Religious authority announcements
+- Regional calendar variations
+
+The widget automatically reflects these adjustments.
+
+## Styling and typography
+
+The widget uses a clear typographic hierarchy:
+
+```kotlin
+val backgroundColor = ColorProvider(R.color.widget_background)
+val textColor = ColorProvider(R.color.widget_text)
+val textSecondary = ColorProvider(R.color.widget_text_secondary)
+val primaryColor = ColorProvider(R.color.widget_primary)
+```
+
+### Font sizes
+
+- **Day of week**: 11sp, medium weight
+- **Hijri day**: 42sp, bold (largest element)
+- **Month and year**: 14sp, medium weight
+- **Gregorian date**: 11sp, regular weight
+
+This creates strong visual hierarchy with the Hijri day as the focal point.
+
+## Android manifest registration
+
+```xml
+<receiver
+    android:name=".widget.hijridate.HijriDateWidgetReceiver"
+    android:exported="true"
+    android:label="@string/widget_hijri_date_name">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/hijri_date_widget_info" />
+</receiver>
+```
+
+## Interaction
+
+Tapping the widget opens the main app:
+
+```kotlin
+.clickable(actionStartActivity<MainActivity>())
+```
+
+This allows users to:
+- View the full Hijri calendar
+- Adjust date offsets
+- See prayer times for the day
+- Access other app features
+
+## Islamic months
+
+The widget displays the full month names:
+
+1. Muharram
+2. Safar
+3. Rabi' al-Awwal
+4. Rabi' al-Thani
+5. Jumada al-Awwal
+6. Jumada al-Thani
+7. Rajab
+8. Sha'ban
+9. Ramadan
+10. Shawwal
+11. Dhu al-Qi'dah
+12. Dhu al-Hijjah
+
+The display adapts to your device's text size settings while maintaining readability.
+
+## Special considerations
+
+### Ramadan display
+
+During Ramadan, the widget helps users:
+- Track fasting days by displaying the current date
+- Count down to Eid by showing the day number
+- Stay aware of important dates like Laylat al-Qadr
+
+### Dhu al-Hijjah
+
+During the month of Hajj:
+- Displays the current day for those tracking Hajj days
+- Shows when the Days of Tashreeq occur
+- Helps identify Eid al-Adha (10th of Dhu al-Hijjah)
+
+### Month transitions
+
+The widget automatically updates when the month changes:
+- No manual refresh needed
+- Updates typically occur at midnight
+- Respects any date adjustments
+
+## Troubleshooting
+
+### Widget shows "Tap to refresh"
+
+This error state indicates the date couldn't be loaded.
+
+**Solution**:
+1. Tap the widget to open the app
+2. Check that the app has calculated prayer times (date calculation is related)
+3. Verify your device date and time are correct
+4. Wait for the next automatic update
+
+### Date is one day off
+
+Hijri date differences can occur due to:
+- Local moon sighting variations
+- Different calculation methods
+- Regional calendar differences
+
+**Solution**:
+1. Open the Nimaz app
+2. Go to Settings → Hijri Date
+3. Adjust the offset (+1 or -1 day) to match your local calendar
+4. Widget will update to show the corrected date
+
+### Not updating at midnight
+
+If the widget doesn't refresh when the day changes:
+
+**Solution**:
+1. Check battery optimization settings for Nimaz
+2. Ensure the app isn't restricted from background activity
+3. Tap the widget to force a refresh
+4. If issue persists, remove and re-add the widget
+
+### Wrong day of week
+
+The day of week should match your device's Gregorian calendar.
+
+**Solution**:
+1. Verify your device's date and time settings
+2. Check timezone is set correctly
+3. Restart the app
+4. Widget will correct on next update
+
+## Use cases
+
+### Daily awareness
+
+Place the widget on your home screen to:
+- Stay connected with the Islamic calendar
+- Know the current Hijri date at a glance
+- Track important dates like the 15th (middle) of each month
+
+### Religious observances
+
+Use the widget to track:
+- **Ashura** (10th of Muharram)
+- **Night of Bara'ah** (15th of Sha'ban)
+- **Ramadan** progress
+- **Days of Tashreeq** (11th-13th of Dhu al-Hijjah)
+
+### Historical dates
+
+Know the Hijri date for:
+- Recording important personal events
+- Tracking Islamic historical dates
+- Noting religious occasions
+
+## Accessibility
+
+The widget follows accessibility best practices:
+
+- **High contrast**: Clear text against background
+- **Large type**: 42sp day number is easily readable
+- **Logical reading order**: Top to bottom, most important to least
+- **Respects system settings**: Adapts to device text size preferences
+
+## Related widgets
+
+- [Prayer times widget](/widgets/prayer-times-widget) - Shows prayer times with Hijri date
+- [Next prayer widget](/widgets/next-prayer-widget) - Focus on upcoming prayer
+- [Prayer tracker widget](/widgets/prayer-tracker-widget) - Track daily prayer completion

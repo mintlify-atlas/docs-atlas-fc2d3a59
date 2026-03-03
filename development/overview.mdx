@@ -1,0 +1,163 @@
+---
+title: Development overview
+description: Introduction to Nimaz's development environment, tech stack, and contribution guidelines
+---
+
+Nimaz is a modern Islamic companion app built entirely with Android's latest development tools and best practices. This documentation will help you understand the codebase and start contributing.
+
+## Tech stack
+
+Nimaz is built with a modern Android development stack focused on Kotlin and Jetpack libraries:
+
+<CardGroup cols={2}>
+  <Card title="Jetpack Compose" icon="paintbrush">
+    Modern declarative UI toolkit for building native Android interfaces
+  </Card>
+  <Card title="Hilt" icon="syringe">
+    Dependency injection framework built on top of Dagger
+  </Card>
+  <Card title="Room" icon="database">
+    SQLite abstraction layer for robust local data persistence
+  </Card>
+  <Card title="Kotlin Coroutines" icon="arrows-spin">
+    Asynchronous programming with Flow for reactive data streams
+  </Card>
+</CardGroup>
+
+## Project configuration
+
+```kotlin
+android {
+    namespace = "com.arshadshah.nimaz"
+    compileSdk = 36
+    
+    defaultConfig {
+        applicationId = "com.arshadshah.nimaz"
+        minSdk = 29
+        targetSdk = 36
+        versionCode = 300
+        versionName = "3.0.0"
+    }
+    
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+}
+```
+
+## Architecture principles
+
+Nimaz follows Clean Architecture principles with clear separation of concerns:
+
+- **Domain Layer**: Business logic and use cases
+- **Data Layer**: Repository implementations and data sources
+- **Presentation Layer**: UI components and ViewModels
+
+<Note>
+The app uses unidirectional data flow (UDF) pattern with ViewModels emitting UI state via StateFlow.
+</Note>
+
+## Development setup
+
+### Prerequisites
+
+- Android Studio Hedgehog (2023.1.1) or later
+- JDK 21
+- Android SDK 36
+- Kotlin 2.3.0 or later
+
+### Building the project
+
+1. Clone the repository
+2. Open the project in Android Studio
+3. Sync Gradle dependencies
+4. Run the app on an emulator or physical device (API 29+)
+
+```bash
+./gradlew assembleDebug
+```
+
+## Key features
+
+Nimaz includes comprehensive Islamic features:
+
+<Accordion title="Quran & Tafseer">
+  - Complete Quran with multiple translations
+  - Tafseer (commentary) with highlighting and notes
+  - Bookmarks, favorites, and reading progress tracking
+  - Khatam (recitation completion) tracking with daily goals
+</Accordion>
+
+<Accordion title="Prayer Times & Tracking">
+  - Accurate prayer times using the Adhan library
+  - Prayer tracking with historical records
+  - Customizable notifications with Adhan sounds
+  - Qibla compass with camera overlay
+</Accordion>
+
+<Accordion title="Islamic Content">
+  - Hadith collections from various books
+  - Dua (supplications) with audio playback
+  - 99 Names of Allah (Asma ul Husna)
+  - Names of Prophet Muhammad (Asma un Nabi)
+  - Stories of 25 Prophets
+</Accordion>
+
+<Accordion title="Worship Tools">
+  - Digital Tasbih (counter) with presets
+  - Fasting tracker for Ramadan and voluntary fasts
+  - Zakat calculator with history
+  - Hijri calendar with Islamic events
+</Accordion>
+
+<Accordion title="Widgets">
+  - Next prayer time widget
+  - All prayer times widget
+  - Prayer tracker widget
+  - Hijri date widget
+  - Hijri calendar widget
+</Accordion>
+
+## Testing
+
+Nimaz uses a comprehensive testing setup:
+
+- **Unit Tests**: JUnit, MockK, Truth, Turbine, Robolectric
+- **Instrumented Tests**: Espresso, Compose UI Testing, Hilt Testing
+
+```bash
+# Run unit tests
+./gradlew test
+
+# Run instrumented tests
+./gradlew connectedAndroidTest
+```
+
+## Contributing
+
+When contributing to Nimaz:
+
+1. Follow the existing architecture patterns
+2. Use meaningful commit messages
+3. Write tests for new features
+4. Follow Kotlin coding conventions
+5. Update documentation as needed
+
+<Warning>
+Make sure to test on devices running Android 10 (API 29) and above, as this is the minimum supported version.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" href="/development/architecture">
+    Learn about the Clean Architecture implementation
+  </Card>
+  <Card title="Project structure" href="/development/project-structure">
+    Understand the directory organization
+  </Card>
+  <Card title="Dependencies" href="/development/dependencies">
+    Explore the key libraries and their usage
+  </Card>
+</CardGroup>

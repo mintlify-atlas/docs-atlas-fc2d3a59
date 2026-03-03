@@ -1,0 +1,469 @@
+---
+title: Project structure
+description: Directory organization and file naming conventions in the Nimaz codebase
+---
+
+The Nimaz project follows a modular, feature-based structure that aligns with Clean Architecture principles. This guide explains the directory organization and helps you navigate the codebase.
+
+## Root directory
+
+```
+nimaz/
+├── app/                    # Main application module
+├── gradle/                 # Gradle wrapper and version catalog
+├── nimaz-pro-data/         # Pro version data files
+├── build.gradle.kts        # Root build configuration
+├── settings.gradle.kts     # Project settings
+└── gradle.properties       # Gradle properties
+```
+
+## App module structure
+
+The `app/` module contains all application code:
+
+```
+app/
+├── src/
+│   ├── main/
+│   │   ├── java/com/arshadshah/nimaz/
+│   │   ├── res/            # Resources (layouts, drawables, etc.)
+│   │   └── AndroidManifest.xml
+│   ├── test/               # Unit tests
+│   └── androidTest/        # Instrumented tests
+├── schemas/                # Room database schemas
+└── build.gradle.kts        # App build configuration
+```
+
+## Source package structure
+
+All Kotlin code is organized under `com.arshadshah.nimaz/`:
+
+```
+com.arshadshah.nimaz/
+├── MainActivity.kt         # Entry point activity
+├── NimazApp.kt            # Application class
+├── core/                  # Core utilities and infrastructure
+├── domain/                # Business logic layer
+├── data/                  # Data layer implementation
+├── presentation/          # UI layer (Compose + ViewModels)
+└── widget/                # Home screen widgets
+```
+
+<Info>
+The package structure mirrors the Clean Architecture layers, making it easy to identify dependencies and maintain separation of concerns.
+</Info>
+
+## Core package
+
+Shared utilities and cross-cutting concerns:
+
+```
+core/
+├── di/                    # Dependency injection modules
+│   ├── DatabaseModule.kt
+│   ├── DataStoreModule.kt
+│   └── RepositoryModule.kt
+├── navigation/            # Navigation configuration
+└── util/                  # Utility classes and helpers
+```
+
+### Dependency injection modules
+
+<CardGroup cols={2}>
+  <Card title="DatabaseModule">
+    Provides Room database instance and DAOs
+  </Card>
+  <Card title="DataStoreModule">
+    Provides Preferences DataStore for app settings
+  </Card>
+  <Card title="RepositoryModule">
+    Binds repository implementations and provides use cases
+  </Card>
+</CardGroup>
+
+## Domain package
+
+The domain layer is framework-agnostic and contains business logic:
+
+```
+domain/
+├── model/                 # Domain models and enums
+│   ├── PrayerType.kt
+│   ├── Surah.kt
+│   ├── Ayah.kt
+│   └── ... (30+ models)
+├── repository/            # Repository interfaces
+│   ├── QuranRepository.kt
+│   ├── HadithRepository.kt
+│   ├── DuaRepository.kt
+│   ├── PrayerRepository.kt
+│   ├── FastingRepository.kt
+│   ├── TasbihRepository.kt
+│   ├── ZakatRepository.kt
+│   ├── TafseerRepository.kt
+│   ├── KhatamRepository.kt
+│   ├── AsmaUlHusnaRepository.kt
+│   ├── AsmaUnNabiRepository.kt
+│   └── ProphetRepository.kt
+└── usecase/               # Use case implementations
+    ├── QuranUseCases.kt
+    ├── KhatamUseCases.kt
+    ├── AsmaUlHusnaUseCases.kt
+    ├── AsmaUnNabiUseCases.kt
+    └── ProphetUseCases.kt
+```
+
+<Accordion title="Domain models vs. entities">
+Domain models (`domain/model/`) represent business concepts and are used throughout the app. Room entities (`data/local/database/entity/`) are persistence models specific to the database and may include Room annotations.
+
+Repositories convert between entities and domain models using mapper functions.
+</Accordion>
+
+## Data package
+
+Implements data sources and repositories:
+
+```
+data/
+├── audio/                     # Audio management
+│   ├── AdhanAudioManager.kt   # Adhan sound file management
+│   ├── AdhanDownloadService.kt
+│   └── AdhanSound.kt          # Adhan sound enum
+├── local/
+│   ├── database/
+│   │   ├── NimazDatabase.kt   # Room database definition
+│   │   ├── dao/               # Data Access Objects
+│   │   │   ├── QuranDao.kt
+│   │   │   ├── HadithDao.kt
+│   │   │   ├── DuaDao.kt
+│   │   │   ├── PrayerDao.kt
+│   │   │   ├── FastingDao.kt
+│   │   │   ├── TasbihDao.kt
+│   │   │   ├── LocationDao.kt
+│   │   │   ├── IslamicEventDao.kt
+│   │   │   ├── ZakatDao.kt
+│   │   │   ├── TafseerDao.kt
+│   │   │   ├── KhatamDao.kt
+│   │   │   ├── AsmaUlHusnaDao.kt
+│   │   │   ├── AsmaUnNabiDao.kt
+│   │   │   └── ProphetDao.kt
+│   │   └── entity/            # Room entities
+│   │       ├── SurahEntity.kt
+│   │       ├── AyahEntity.kt
+│   │       ├── TranslationEntity.kt
+│   │       ├── QuranBookmarkEntity.kt
+│   │       └── ... (30+ entities)
+│   └── datastore/
+│       └── PreferencesDataStore.kt
+└── repository/                # Repository implementations
+    ├── QuranRepositoryImpl.kt
+    ├── HadithRepositoryImpl.kt
+    ├── DuaRepositoryImpl.kt
+    ├── PrayerRepositoryImpl.kt
+    ├── FastingRepositoryImpl.kt
+    ├── TasbihRepositoryImpl.kt
+    ├── ZakatRepositoryImpl.kt
+    ├── TafseerRepositoryImpl.kt
+    ├── KhatamRepositoryImpl.kt
+    ├── AsmaUlHusnaRepositoryImpl.kt
+    ├── AsmaUnNabiRepositoryImpl.kt
+    └── ProphetRepositoryImpl.kt
+```
+
+### Database schemas
+
+Room exports database schemas to `app/schemas/` for version control:
+
+```
+app/schemas/
+├── com.arshadshah.nimaz.data.local.database.NimazDatabase/
+│   ├── 8.json
+│   ├── 9.json
+│   └── 10.json
+```
+
+<Warning>
+Always create migration scripts when changing the database schema. See NimazDatabase.kt:124 for examples.
+</Warning>
+
+## Presentation package
+
+Contains all UI code using Jetpack Compose:
+
+```
+presentation/
+├── components/
+│   ├── atoms/             # Basic components
+│   ├── molecules/         # Composite components
+│   └── organisms/         # Complex UI sections
+├── screens/               # Feature screens
+│   ├── about/
+│   ├── asma/              # Asma ul Husna
+│   ├── asmaunnabi/        # Asma un Nabi
+│   ├── bookmarks/
+│   ├── calendar/
+│   ├── dua/
+│   ├── fasting/
+│   ├── hadith/
+│   ├── help/
+│   ├── home/
+│   ├── khatam/
+│   ├── more/
+│   ├── onboarding/
+│   ├── prayer/
+│   ├── prophets/
+│   ├── qibla/
+│   ├── quran/
+│   ├── search/
+│   ├── settings/
+│   ├── tasbih/
+│   └── zakat/
+├── theme/                 # Material3 theme
+│   ├── Color.kt
+│   ├── Shape.kt
+│   ├── Theme.kt
+│   └── Type.kt
+└── viewmodel/             # ViewModels
+    ├── HomeViewModel.kt
+    ├── QuranViewModel.kt
+    ├── HadithViewModel.kt
+    ├── DuaViewModel.kt
+    ├── PrayerTrackerViewModel.kt
+    ├── FastingViewModel.kt
+    ├── TasbihViewModel.kt
+    ├── ZakatViewModel.kt
+    ├── KhatamViewModel.kt
+    ├── AsmaUlHusnaViewModel.kt
+    ├── AsmaUnNabiViewModel.kt
+    ├── ProphetViewModel.kt
+    └── ... (21 total)
+```
+
+### Screen organization
+
+Each feature screen typically contains:
+
+```
+screens/quran/
+├── QuranScreen.kt         # Main screen composable
+├── QuranUiState.kt        # UI state data class
+├── QuranEvent.kt          # User events
+└── components/            # Screen-specific components
+    ├── SurahListItem.kt
+    ├── AyahCard.kt
+    └── TranslationSelector.kt
+```
+
+<Accordion title="Component hierarchy example">
+```kotlin
+// Atom
+@Composable
+fun NimazButton(text: String, onClick: () -> Unit) { ... }
+
+// Molecule (uses atoms)
+@Composable
+fun PrayerTimeCard(prayer: Prayer, time: String) { ... }
+
+// Organism (uses molecules)
+@Composable
+fun PrayerTimesSection(prayers: List<Prayer>) { ... }
+
+// Screen (uses organisms)
+@Composable
+fun HomeScreen(viewModel: HomeViewModel) { ... }
+```
+</Accordion>
+
+## Widget package
+
+Glance-based home screen widgets:
+
+```
+widget/
+├── hijricalendar/         # Hijri calendar widget
+├── hijridate/             # Hijri date widget
+├── nextprayer/            # Next prayer time widget
+├── prayertimes/           # All prayer times widget
+└── prayertracker/         # Prayer tracking widget
+```
+
+Each widget package contains:
+- Widget class (extends GlanceAppWidget)
+- Receiver class (extends GlanceAppWidgetReceiver)
+- UI components
+- Worker for data updates
+
+## Test structure
+
+### Unit tests (`src/test/`)
+
+Mirror the main source structure:
+
+```
+test/java/com/arshadshah/nimaz/
+├── domain/
+│   └── usecase/           # Use case tests
+├── data/
+│   └── repository/        # Repository tests
+└── presentation/
+    └── viewmodel/         # ViewModel tests
+```
+
+### Instrumented tests (`src/androidTest/`)
+
+```
+androidTest/java/com/arshadshah/nimaz/
+├── data/
+│   └── local/
+│       └── database/      # Database tests
+└── presentation/
+    └── screens/           # UI tests
+```
+
+<Tip>
+Test file names should match the class being tested with a "Test" suffix, e.g., `QuranViewModelTest.kt` for `QuranViewModel.kt`.
+</Tip>
+
+## Resources structure
+
+```
+res/
+├── drawable/              # Vector drawables and icons
+├── mipmap/                # App launcher icons
+├── raw/                   # Raw assets (JSON data files)
+├── values/                # Strings, colors, themes
+│   ├── strings.xml
+│   ├── themes.xml
+│   └── colors.xml
+└── xml/                   # Widget metadata and preferences
+```
+
+<Note>
+With Jetpack Compose, most UI is defined in code rather than XML. The `res/` directory mainly contains static resources and configuration.
+</Note>
+
+## Version catalog
+
+Dependencies are centralized in `gradle/libs.versions.toml`:
+
+```toml
+[versions]
+kotlin = "2.3.0"
+hilt = "2.57.1"
+room = "2.8.4"
+composeBom = "2026.01.00"
+# ... more versions
+
+[libraries]
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+# ... more libraries
+
+[plugins]
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+# ... more plugins
+```
+
+## Naming conventions
+
+<CardGroup cols={2}>
+  <Card title="Kotlin files">
+    PascalCase matching the class name
+    `QuranViewModel.kt`
+  </Card>
+  <Card title="Packages">
+    lowercase with underscores for multi-word
+    `asmaunnabi/`
+  </Card>
+  <Card title="Composables">
+    PascalCase, typically same as filename
+    `@Composable fun QuranScreen()`
+  </Card>
+  <Card title="Resources">
+    snake_case
+    `ic_prayer_times.xml`
+  </Card>
+</CardGroup>
+
+### File naming patterns
+
+- **Domain Models**: `{Entity}.kt` (e.g., `Surah.kt`, `Prayer.kt`)
+- **Entities**: `{Entity}Entity.kt` (e.g., `SurahEntity.kt`)
+- **DAOs**: `{Entity}Dao.kt` (e.g., `QuranDao.kt`)
+- **Repositories**: `{Feature}Repository.kt` (interface) and `{Feature}RepositoryImpl.kt` (implementation)
+- **Use Cases**: `{Action}{Entity}UseCase.kt` (e.g., `GetSurahListUseCase.kt`)
+- **ViewModels**: `{Feature}ViewModel.kt` (e.g., `QuranViewModel.kt`)
+- **Screens**: `{Feature}Screen.kt` (e.g., `QuranScreen.kt`)
+- **UI State**: `{Feature}UiState.kt` (e.g., `QuranUiState.kt`)
+
+## Finding specific code
+
+### Common locations
+
+<Accordion title="Looking for prayer time calculation?">
+`data/repository/PrayerRepositoryImpl.kt` - Uses the Adhan library
+
+`core/util/PrayerNotificationScheduler.kt` - Notification scheduling
+</Accordion>
+
+<Accordion title="Looking for Quran reading UI?">
+`presentation/screens/quran/QuranScreen.kt` - Main reader UI
+
+`presentation/viewmodel/QuranViewModel.kt` - State management
+
+`domain/usecase/QuranUseCases.kt` - Business logic
+</Accordion>
+
+<Accordion title="Looking for database schema?">
+`data/local/database/NimazDatabase.kt` - Database definition
+
+`data/local/database/entity/` - All entities
+
+`app/schemas/` - Exported schema JSON files
+</Accordion>
+
+<Accordion title="Looking for theme colors?">
+`presentation/theme/Color.kt` - Color definitions
+
+`presentation/theme/Theme.kt` - Material3 theme setup
+</Accordion>
+
+<Tip>
+Use Android Studio's "Find in Path" (Ctrl+Shift+F / Cmd+Shift+F) to search across the codebase. The clear package structure makes it easy to narrow searches to specific layers.
+</Tip>
+
+## Build configuration
+
+Key Gradle files:
+
+### Root `build.gradle.kts`
+
+Defines plugins for all modules:
+
+```kotlin
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.about.libs.plugin) apply false
+}
+```
+
+### App `build.gradle.kts`
+
+Configures the app module with dependencies, build types, and compiler options. See full details in `/development/dependencies`.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" href="/development/architecture">
+    Learn how the layers interact
+  </Card>
+  <Card title="Dependencies" href="/development/dependencies">
+    Explore the libraries used
+  </Card>
+</CardGroup>

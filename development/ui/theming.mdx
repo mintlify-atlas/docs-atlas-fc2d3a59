@@ -1,0 +1,387 @@
+---
+title: Theming
+description: Material 3 theming system, dynamic colors, and NimazTheme implementation
+---
+
+Nimaz uses Material Design 3 with custom theming to provide a cohesive visual experience. The theme system supports light/dark modes, dynamic colors (Android 12+), and custom color schemes.
+
+## NimazTheme
+
+The root theme composable wraps the entire app:
+
+```kotlin presentation/theme/Theme.kt
+@Composable
+fun NimazTheme(
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    dynamicColor: Boolean = false,
+    hapticEnabled: Boolean = true,
+    animationsEnabled: Boolean = true,
+    use24HourFormat: Boolean = false,
+    useHijriPrimary: Boolean = false,
+    showIslamicPatterns: Boolean = true,
+    localeCode: String = "en",
+    content: @Composable () -> Unit
+) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) 
+            else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
+    
+    CompositionLocalProvider(
+        LocalHapticEnabled provides hapticEnabled,
+        LocalAnimationsEnabled provides animationsEnabled,
+        LocalUse24HourFormat provides use24HourFormat,
+        LocalUseHijriPrimary provides useHijriPrimary,
+        LocalShowIslamicPatterns provides showIslamicPatterns
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typographyForLocale(localeCode),
+            shapes = NimazShapes,
+            content = content
+        )
+    }
+}
+```
+
+### Theme modes
+
+```kotlin
+enum class ThemeMode {
+    SYSTEM,  // Follow system setting
+    LIGHT,   // Always light
+    DARK     // Always dark
+}
+```
+
+## Color system
+
+Nimaz uses a comprehensive color palette defined in `NimazColors`:
+
+### Primary colors (Teal)
+
+```kotlin presentation/theme/Color.kt
+object NimazColors {
+    // Primary - Teal
+    val Primary50 = Color(0xFFF0FDFA)
+    val Primary100 = Color(0xFFCCFBF1)
+    val Primary200 = Color(0xFF99F6E4)
+    val Primary400 = Color(0xFF2DD4BF)
+    val Primary = Color(0xFF14B8A6)      // Primary 500
+    val Primary600 = Color(0xFF0D9488)
+    val Primary700 = Color(0xFF0F766E)
+    val Primary800 = Color(0xFF115E59)
+    val Primary900 = Color(0xFF134E4A)
+    val Primary950 = Color(0xFF042F2E)
+}
+```
+
+### Secondary colors (Gold/Amber)
+
+```kotlin presentation/theme/Color.kt
+// Secondary - Gold/Amber
+val Gold400 = Color(0xFFFACC15)
+val Gold500 = Color(0xFFEAB308)
+val Secondary = Gold500
+val SecondaryLight = Gold400
+```
+
+### Prayer time colors
+
+```kotlin presentation/theme/Color.kt
+object PrayerColors {
+    val Fajr = Color(0xFF6366F1)              // Indigo
+    val FajrGradientEnd = Color(0xFF9FA8DA)
+    val Sunrise = Color(0xFFF59E0B)           // Amber
+    val SunriseGradientEnd = Color(0xFFFFE0B2)
+    val Dhuhr = Color(0xFFEAB308)             // Yellow
+    val DhuhrGradientEnd = Color(0xFFFFF9C4)
+    val Asr = Color(0xFFF97316)               // Orange
+    val AsrGradientEnd = Color(0xFFFFCCBC)
+    val Maghrib = Color(0xFFEF4444)           // Red
+    val MaghribGradientEnd = Color(0xFFFFCDD2)
+    val Isha = Color(0xFF8B5CF6)              // Purple
+    val IshaGradientEnd = Color(0xFFC5CAE9)
+}
+```
+
+### Tajweed colors
+
+For Quranic recitation rules:
+
+```kotlin presentation/theme/Color.kt
+object TajweedColors {
+    // Light theme
+    val GhunnahLight = Color(0xFF059669)          // Green
+    val IkhfaLight = Color(0xFF0D9488)            // Teal
+    val IdghamGhunnahLight = Color(0xFFD97706)    // Amber
+    val QalqalahLight = Color(0xFF2563EB)         // Blue
+    val MaddNormalLight = Color(0xFFE11D48)       // Rose
+    val IqlabLight = Color(0xFF7C3AED)            // Violet
+    val LamShamsiyyahLight = Color(0xFF4F46E5)    // Indigo
+    val SilentLight = Color(0xFF64748B)           // Slate
+    
+    // Dark theme (brighter for OLED)
+    val GhunnahDark = Color(0xFF34D399)
+    val IkhfaDark = Color(0xFF2DD4BF)
+    // ... additional dark variants
+}
+```
+
+## Typography
+
+Nimaz uses custom fonts with Material 3 typography scale:
+
+### Font families
+
+```kotlin presentation/theme/Type.kt
+// Outfit (variable font) for headlines
+val OutfitFontFamily = FontFamily(
+    Font(R.font.outfit_variable, weight = FontWeight.Normal),
+    Font(R.font.outfit_variable, weight = FontWeight.Medium),
+    Font(R.font.outfit_variable, weight = FontWeight.SemiBold),
+    Font(R.font.outfit_variable, weight = FontWeight.Bold)
+)
+
+// Plus Jakarta Sans (variable font) for body text
+val PlusJakartaSansFontFamily = FontFamily(
+    Font(R.font.plus_jakarta_sans_variable, weight = FontWeight.Normal),
+    Font(R.font.plus_jakarta_sans_variable, weight = FontWeight.Medium),
+    Font(R.font.plus_jakarta_sans_variable, weight = FontWeight.SemiBold),
+    Font(R.font.plus_jakarta_sans_variable, weight = FontWeight.Bold)
+)
+
+// Amiri for Arabic text
+val AmiriFontFamily = FontFamily(
+    Font(R.font.amiri_regular, weight = FontWeight.Normal),
+    Font(R.font.amiri_bold, weight = FontWeight.Bold)
+)
+```
+
+### Typography scale
+
+```kotlin presentation/theme/Type.kt
+val NimazTypography = Typography(
+    // Display styles - For large, prominent text
+    displayLarge = TextStyle(
+        fontFamily = OutfitFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 57.sp,
+        lineHeight = 64.sp
+    ),
+    
+    // Headline styles - For section headers
+    headlineMedium = TextStyle(
+        fontFamily = OutfitFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 28.sp,
+        lineHeight = 36.sp
+    ),
+    
+    // Body styles - For main content
+    bodyLarge = TextStyle(
+        fontFamily = PlusJakartaSansFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    ),
+    
+    // Label styles - For buttons and small text
+    labelLarge = TextStyle(
+        fontFamily = PlusJakartaSansFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp
+    )
+)
+```
+
+### Arabic text styles
+
+```kotlin presentation/theme/Type.kt
+object ArabicTextStyles {
+    val quranLarge = TextStyle(
+        fontFamily = AmiriFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 32.sp,
+        lineHeight = 56.sp
+    )
+    
+    val quranMedium = TextStyle(
+        fontFamily = AmiriFontFamily,
+        fontSize = 24.sp,
+        lineHeight = 44.sp
+    )
+    
+    val hadithArabic = TextStyle(
+        fontFamily = AmiriFontFamily,
+        fontSize = 22.sp,
+        lineHeight = 40.sp
+    )
+}
+```
+
+### Prayer text styles
+
+```kotlin presentation/theme/Type.kt
+object PrayerTextStyles {
+    val prayerName = TextStyle(
+        fontFamily = OutfitFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        lineHeight = 24.sp
+    )
+    
+    val countdown = TextStyle(
+        fontFamily = OutfitFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp
+    )
+}
+```
+
+## Shapes
+
+Rounded corner shapes for components:
+
+```kotlin presentation/theme/Shape.kt
+val NimazShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(20.dp)
+)
+```
+
+## CompositionLocals
+
+Theme provides custom composition locals for app-wide settings:
+
+```kotlin presentation/theme/Theme.kt
+val LocalHapticEnabled = compositionLocalOf { true }
+val LocalAnimationsEnabled = compositionLocalOf { true }
+val LocalUse24HourFormat = compositionLocalOf { false }
+val LocalUseHijriPrimary = compositionLocalOf { false }
+val LocalShowIslamicPatterns = compositionLocalOf { true }
+```
+
+**Usage:**
+
+```kotlin
+@Composable
+fun SomeComponent() {
+    val animationsEnabled = LocalAnimationsEnabled.current
+    val useHijriPrimary = LocalUseHijriPrimary.current
+    
+    // Conditionally enable animations
+    if (animationsEnabled) {
+        AnimatedContent(/* ... */) { }
+    }
+    
+    // Show Hijri date first if preferred
+    Text(
+        text = if (useHijriPrimary) hijriDate else gregorianDate
+    )
+}
+```
+
+## Dynamic colors
+
+On Android 12+, the app can extract colors from the user's wallpaper:
+
+```kotlin
+val colorScheme = when {
+    dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        val context = LocalContext.current
+        if (darkTheme) dynamicDarkColorScheme(context) 
+        else dynamicLightColorScheme(context)
+    }
+    darkTheme -> DarkColorScheme
+    else -> LightColorScheme
+}
+```
+
+## Status bar styling
+
+The theme automatically adjusts status bar appearance:
+
+```kotlin presentation/theme/Theme.kt
+val view = LocalView.current
+if (!view.isInEditMode) {
+    SideEffect {
+        val window = (view.context as Activity).window
+        window.statusBarColor = colorScheme.background.toArgb()
+        window.navigationBarColor = colorScheme.background.toArgb()
+        WindowCompat.getInsetsController(window, view)
+            .isAppearanceLightStatusBars = !darkTheme
+        WindowCompat.getInsetsController(window, view)
+            .isAppearanceLightNavigationBars = !darkTheme
+    }
+}
+```
+
+## Usage in MainActivity
+
+```kotlin MainActivity.kt
+class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var preferencesDataStore: PreferencesDataStore
+    
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        
+        setContent {
+            val themeModeString by preferencesDataStore.themeMode
+                .collectAsState(initial = "system")
+            val dynamicColor by preferencesDataStore.dynamicColor
+                .collectAsState(initial = false)
+            val hapticEnabled by preferencesDataStore.hapticFeedback
+                .collectAsState(initial = true)
+            
+            val themeMode = when (themeModeString) {
+                "light" -> ThemeMode.LIGHT
+                "dark" -> ThemeMode.DARK
+                else -> ThemeMode.SYSTEM
+            }
+            
+            NimazTheme(
+                themeMode = themeMode,
+                dynamicColor = dynamicColor,
+                hapticEnabled = hapticEnabled,
+                animationsEnabled = animationsEnabled,
+                use24HourFormat = use24HourFormat,
+                useHijriPrimary = useHijriPrimary
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    NavGraph()
+                }
+            }
+        }
+    }
+}
+```
+
+## Related
+
+- [Components](/development/ui/components) - Themed components
+- [Compose screens](/development/ui/compose-screens) - Screen structure
+- [Navigation](/development/ui/navigation) - Navigation setup
